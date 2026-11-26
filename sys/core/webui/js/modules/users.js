@@ -7,6 +7,7 @@ import { el } from "../dom.js";
 import { apply, t } from "../i18n.js";
 import { qrSvg } from "../qr.js";
 import { bus } from "../bus.js";
+import { renderGroups } from "./users_groups.js";
 
 export default {
   id: "users",
@@ -15,15 +16,26 @@ export default {
 
   mount(root) {
     root.classList.add("page");
+    // three tabs (owner, 27 Nov: «separerei… il mio utente, utenti e gruppi, e poi l'accesso… nello stesso stile»)
     root.innerHTML = `<h2 data-i18n="users.title"></h2><p class="muted" data-i18n="users.hint"></p>
-      <h3 class="setting-cat" data-i18n="users.me"></h3><div class="me"></div>
-      <div class="admin hidden"><h3 class="setting-cat" data-i18n="users.all"></h3><div class="list"></div>
+      <div class="prj-tabs us-tabs"><button type="button" class="cat-chip on" data-tab="me" data-i18n="users.tab.me"></button>
+        <button type="button" class="cat-chip admin-tab hidden" data-tab="people" data-i18n="users.tab.people"></button>
+        <button type="button" class="cat-chip admin-tab hidden" data-tab="access" data-i18n="users.tab.access"></button></div>
+      <div class="us-tab" data-tab="me"><div class="me"></div></div>
+      <div class="admin hidden">
+       <div class="us-tab" data-tab="people" hidden><h3 class="setting-cat" data-i18n="users.all"></h3><div class="list"></div>
         <h3 class="setting-cat" data-i18n="perm.title"></h3><p class="muted" data-i18n="perm.hint"></p><div class="perm"></div>
+        <h3 class="setting-cat" data-i18n="groups.title"></h3><div class="groups-box"></div>
         <form class="import add"><input name="person" data-i18n-placeholder="users.person" required>
           <input name="name" autocapitalize="none" autocomplete="off" spellcheck="false" data-i18n-placeholder="users.name" required>
           <input name="password" type="password" autocomplete="new-password" data-i18n-placeholder="users.password" required>
-          <button type="submit" data-i18n="users.add"></button></form><p class="result add-out"></p></div>`;
+          <button type="submit" data-i18n="users.add"></button></form><p class="result add-out"></p></div>
+       <div class="us-tab" data-tab="access" hidden><div class="access-box"></div></div></div>`;
     apply(root);
+    root.querySelectorAll(".us-tabs button").forEach((b) => b.addEventListener("click", () => {
+      root.querySelectorAll(".us-tabs button").forEach((x) => x.classList.toggle("on", x === b));
+      root.querySelectorAll(".us-tab").forEach((p) => { p.hidden = p.dataset.tab !== b.dataset.tab; });
+    }));
     this.meBox = root.querySelector(".me");
     this.adminBox = root.querySelector(".admin");
     this.list = root.querySelector(".list");
@@ -86,7 +98,14 @@ export default {
     const me = await call("/v1/aurora/me");
     this.renderMe(me);
     this.adminBox.classList.toggle("hidden", !me.admin);
-    if (me.admin) await this.loadUsers();
+    this.adminBox.closest(".page").querySelectorAll(".admin-tab").forEach((b) => b.classList.toggle("hidden", !me.admin));
+    if (me.admin) {
+      await this.loadUsers();
+      const gb = this.adminBox.querySelector(".groups-box"), ab = this.adminBox.querySelector(".access-box");
+      renderGroups(gb, ab).catch((e) => {             // C754: said on the page, never an empty tab
+        for (const x of [gb, ab]) x?.replaceChildren(el("p", "error", t("ev.error", { m: e.message || String(e) })));
+      });
+    }
   },
 
   renderMe(me) {

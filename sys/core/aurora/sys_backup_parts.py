@@ -30,6 +30,19 @@ HISTORY_STATUS = {"autonomy_ledger.jsonl", "autopilot.json", "fresh_start.txt", 
                   "welcomed.json"}
 
 
+_BASES: dict = {}
+
+
+def _base(cfg: sys_config.Config, key: str) -> str:
+    """_rel once per installation and folder (C755: resolved for each of a snapshot's 82,000 files, the parts of ten
+    copies took about four minutes, 22.5 s each — the 💾 page stayed on «Leggo i backup…»)."""
+    k = (id(cfg), key)                               # the object kept beside it: its id is never reused meanwhile
+    hit = _BASES.get(k)
+    if hit is None or hit[0] is not cfg:
+        hit = _BASES[k] = (cfg, _rel(cfg, key))
+    return hit[1]
+
+
 def _rel(cfg: sys_config.Config, key: str) -> str:
     p, root = cfg.path(key).resolve(), cfg.root.resolve()
     return str(p.relative_to(root)) if root in p.parents else "\0"       # a folder outside the root: «external/…»
@@ -41,24 +54,39 @@ def _under(rel: str, base: str) -> bool:
 
 def part_of(cfg: sys_config.Config, rel: str) -> str:
     """The part of a file of the snapshot, from its path relative to Aurora's root."""
-    index, vault = _rel(cfg, "AURORA_INDEX_DIR"), _rel(cfg, "AURORA_VAULT_DIR")
+    index, vault = _base(cfg, "AURORA_INDEX_DIR"), _base(cfg, "AURORA_VAULT_DIR")
     if rel.startswith("external/"):
         return "files"
     if _under(rel, f"{index}/memory") or _under(rel, f"{vault}/memory"):
         return "memory"
     if _under(rel, index) or _under(rel, vault):
         return "vault"
-    if _under(rel, _rel(cfg, "AURORA_PLUGINS_DIR")):
+    if _under(rel, _base(cfg, "AURORA_PLUGINS_DIR")):
         return "plugins"
-    status = _rel(cfg, "AURORA_STATUS_DIR")
+    status = _base(cfg, "AURORA_STATUS_DIR")
     if _under(rel, status):
-        tail = Path(rel).relative_to(status).parts
+        tail = rel[len(status) + 1:].split("/")
         if tail[0] in MEMORY_STATUS or tail[0].startswith("lessons") or (tail[0] == "users" and tail[-1] in MEMORY_USER):
             return "memory"
         return "history" if tail[0] in HISTORY_STATUS else "config"
     if rel.startswith("usr/"):
-        return "config" if Path(rel).name == ".env" else "files"
+        return "config" if rel.rsplit("/", 1)[-1] == ".env" else "files"
     return "config"
+
+
+def user_of(cfg: sys_config.Config, rel: str) -> str | None:
+    """The user a file of the snapshot belongs to, or None for the machine's own (owner, 27 Nov: «una ulteriore
+    tipologia di selezione a livello di utente… se serve ripristinare solo un utente e i suoi dati, è più veloce»):
+    usr/<name>/…, <status>/users/<name>/…, the memory's <index|vault>/memory/users/<name>/…"""
+    parts = Path(rel).parts
+    if len(parts) > 2 and parts[0] == "usr":
+        return parts[1]
+    for key, sub in (("AURORA_STATUS_DIR", ("users",)), ("AURORA_INDEX_DIR", ("memory", "users")),
+                     ("AURORA_VAULT_DIR", ("memory", "users"))):
+        base = Path(_base(cfg, key)).parts + sub
+        if len(parts) > len(base) + 1 and parts[:len(base)] == base:
+            return parts[len(base)]
+    return None
 
 
 def sizes(cfg: sys_config.Config, files: list) -> dict[str, dict]:

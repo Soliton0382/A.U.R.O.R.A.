@@ -2,6 +2,7 @@
 // Copyright 2026 A.U.R.O.R.A. Project
 // Web Push for this device: state, subscribe (asks the browser's permission), unsubscribe.
 import { call } from "./api.js";
+import { bus } from "./bus.js";
 
 async function registration() {
   if (!("serviceWorker" in navigator) || !("PushManager" in window)) return null;
@@ -24,8 +25,47 @@ function app(name) {
 
 export function appSettings() { if (inApp()) app("settings"); }
 
+// 🖥️ C758 (owner, 27 Nov: «le notifiche nell'app desktop ancora non funzionano»): Aurora Desktop's window
+// (QtWebEngine) has notifications but no Web Push — no push service behind it. There the page keeps Aurora's line
+// open (GET /v1/aurora/line, what the phone app uses: the same notifications as push) and shows each event as a
+// Notification, which the window hands to the desktop (notify-send); a click brings Aurora forward on its page.
+// Any browser without Web Push but with notifications does the same.
+const LINE_OFF = "aurora.line.off";
+// C758 again (measured 27 Nov in a copy of the window: «PushManager» in window is true, there is no push service
+// behind it — QtWebEngine/6.10.2 says so in its user agent): QtWebEngine always takes the line
+const qtWindow = () => /\bQtWebEngine\//.test(navigator.userAgent || "");
+export const lineMode = () => !inApp() && "Notification" in window && (qtWindow() || !("PushManager" in window));
+const lineWanted = () => { try { return localStorage.getItem(LINE_OFF) !== "1"; } catch { return true; } };
+let lineOn = false;
+
+export async function startLine() {
+  if (lineOn || !lineMode() || Notification.permission !== "granted" || !lineWanted()) return;
+  lineOn = true;
+  let next = "";
+  try { next = (await call("/v1/aurora/line")).next || ""; } catch { lineOn = false; return; }
+  while (lineOn && lineWanted()) {
+    try {
+      const r = await call(`/v1/aurora/line?after=${encodeURIComponent(next)}&wait=50`);
+      next = r.next || next;
+      for (const ev of r.events || []) {
+        if (!ev.title || (ev.kind && ev.kind !== "notify")) continue;       // a call's ring, an ack: the phone's
+        const n = new Notification(ev.title, { body: ev.body || "", tag: ev.tag || ev.id, icon: "/static/assets/icon-192.png" });
+        n.onclick = () => { window.focus(); bus.emit("show", { id: ev.view || "chat" }); n.close(); };
+      }
+    } catch (e) {
+      if (e.status === 401) { lineOn = false; return; }                     // signed out: the line ends
+      await new Promise((res) => setTimeout(res, 10000));                    // Aurora restarting: again in a while
+    }
+  }
+  lineOn = false;
+}
+
 export async function pushState() {
   if (inApp()) return app("notifications") ? "app" : "appoff";
+  if (lineMode()) {
+    if (Notification.permission === "denied") return "denied";
+    return Notification.permission === "granted" && lineWanted() ? "on" : "off";
+  }
   const reg = await registration();
   if (!reg) return "unsupported";
   if (Notification.permission === "denied") return "denied";
@@ -33,6 +73,11 @@ export async function pushState() {
 }
 
 export async function pushOn() {
+  if (lineMode()) {
+    try { localStorage.removeItem(LINE_OFF); } catch { /* kept for this page only */ }
+    if (await Notification.requestPermission() === "granted") startLine();
+    return pushState();
+  }
   const reg = await registration();
   if (!reg || await Notification.requestPermission() !== "granted") return pushState();
   const { public_key: k } = await call("/v1/aurora/push");
@@ -44,6 +89,11 @@ export async function pushOn() {
 }
 
 export async function pushOff() {
+  if (lineMode()) {
+    try { localStorage.setItem(LINE_OFF, "1"); } catch { /* for this page only */ }
+    lineOn = false;
+    return pushState();
+  }
   const reg = await registration();
   const sub = reg && await reg.pushManager.getSubscription();
   if (sub) {

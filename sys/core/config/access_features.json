@@ -1,0 +1,328 @@
+{
+ "_doc": "N165 (owner, 27 Nov: «funzionalità e non plugin»): what the admin opens or closes to users and groups. A feature names its pages (the menu hides them), its plugins (the chat's agent offers them only to who may), its API prefixes (refused to who may not: only prefixes no other page uses, test_access_features checks it against every page's calls). default: all = everyone, as before; admin = the admin's until opened. A plugin in no feature stays a feature of its own, plugin:<name> (connectors and tools). The machine's pages (api/modules' adminOnly) are never here: the admin's alone.",
+ "features": [
+  {
+   "id": "calendar",
+   "area": "life",
+   "icon": "📅",
+   "it": "Calendario",
+   "en": "Calendar",
+   "pages": [
+    "calendar"
+   ],
+   "plugins": [
+    "calendar"
+   ],
+   "api": [
+    "/v1/aurora/calendar"
+   ],
+   "default": "all"
+  },
+  {
+   "id": "people",
+   "area": "life",
+   "icon": "🪪",
+   "it": "Persone",
+   "en": "People",
+   "pages": [
+    "people"
+   ],
+   "plugins": [],
+   "api": [
+    "/v1/aurora/people"
+   ],
+   "default": "all"
+  },
+  {
+   "id": "diary",
+   "area": "life",
+   "icon": "📔",
+   "it": "Diario",
+   "en": "Diary",
+   "pages": [
+    "diary"
+   ],
+   "plugins": [
+    "diary"
+   ],
+   "api": [],
+   "default": "all"
+  },
+  {
+   "id": "dreams",
+   "area": "life",
+   "icon": "🌙",
+   "it": "Sogni",
+   "en": "Dreams",
+   "pages": [
+    "dreams"
+   ],
+   "plugins": [],
+   "api": [
+    "/v1/aurora/dreams"
+   ],
+   "default": "all"
+  },
+  {
+   "id": "social",
+   "area": "life",
+   "icon": "📣",
+   "it": "Social",
+   "en": "Social",
+   "pages": [
+    "social"
+   ],
+   "plugins": [
+    "facebook",
+    "instagram",
+    "mastodon",
+    "tiktok",
+    "twitch"
+   ],
+   "api": [
+    "/v1/aurora/social"
+   ],
+   "default": "all"
+  },
+  {
+   "id": "dj",
+   "area": "life",
+   "icon": "🎧",
+   "it": "DJ e musica",
+   "en": "DJ and music",
+   "pages": [
+    "dj"
+   ],
+   "plugins": [
+    "dj",
+    "spotify"
+   ],
+   "api": [
+    "/v1/aurora/dj",
+    "/v1/aurora/dj-song",
+    "/v1/aurora/dj-timeline",
+    "/v1/aurora/radio"
+   ],
+   "default": "all"
+  },
+  {
+   "id": "care",
+   "area": "life",
+   "icon": "❤️",
+   "it": "Salute e dieta",
+   "en": "Health and diet",
+   "pages": [
+    "care"
+   ],
+   "plugins": [
+    "health"
+   ],
+   "api": [
+    "/v1/aurora/care",
+    "/v1/aurora/diet"
+   ],
+   "default": "all"
+  },
+  {
+   "id": "expenses",
+   "area": "life",
+   "icon": "💶",
+   "it": "Spese",
+   "en": "Expenses",
+   "pages": [
+    "expenses"
+   ],
+   "plugins": [
+    "expenses"
+   ],
+   "api": [
+    "/v1/aurora/expenses"
+   ],
+   "default": "all"
+  },
+  {
+   "id": "astro",
+   "area": "life",
+   "icon": "🔭",
+   "it": "Astronomia",
+   "en": "Astronomy",
+   "pages": [
+    "astro"
+   ],
+   "plugins": [
+    "astro",
+    "sky"
+   ],
+   "api": [
+    "/v1/aurora/astro"
+   ],
+   "default": "all"
+  },
+  {
+   "id": "home",
+   "area": "home",
+   "icon": "🏠",
+   "it": "Casa",
+   "en": "Home",
+   "pages": [
+    "home",
+    "homescenes",
+    "homelights",
+    "homeplugs",
+    "homecameras",
+    "homesensors"
+   ],
+   "plugins": [
+    "homeassistant"
+   ],
+   "api": [
+    "/v1/aurora/home"
+   ],
+   "default": "all"
+  },
+  {
+   "id": "consoles",
+   "area": "home",
+   "icon": "🖥️",
+   "it": "Console dei dispositivi",
+   "en": "Devices' consoles",
+   "pages": [
+    "consoles"
+   ],
+   "plugins": [],
+   "api": [
+    "/v1/aurora/consoles"
+   ],
+   "default": "all"
+  },
+  {
+   "id": "projects",
+   "area": "work",
+   "icon": "📁",
+   "it": "Progetti",
+   "en": "Projects",
+   "pages": [
+    "projects"
+   ],
+   "plugins": [
+    "projects",
+    "pyenv",
+    "cad",
+    "circuits",
+    "patent",
+    "publications"
+   ],
+   "api": [
+    "/v1/aurora/projects"
+   ],
+   "default": "all"
+  },
+  {
+   "id": "routines",
+   "area": "work",
+   "icon": "🤖",
+   "it": "Routine",
+   "en": "Routines",
+   "pages": [
+    "routines"
+   ],
+   "plugins": [
+    "routines",
+    "runs"
+   ],
+   "api": [
+    "/v1/aurora/routines"
+   ],
+   "default": "all"
+  },
+  {
+   "id": "evidentia",
+   "area": "work",
+   "icon": "🕵️",
+   "it": "Evidentia (indagini)",
+   "en": "Evidentia (investigations)",
+   "pages": [
+    "evd_archives",
+    "evd_server",
+    "evd_cases",
+    "evidentia",
+    "evd_net",
+    "evd_agents",
+    "evd_routines"
+   ],
+   "plugins": [
+    "evidentia"
+   ],
+   "api": [
+    "/v1/aurora/evidentia",
+    "/v1/aurora/evidentia-ask",
+    "/v1/aurora/evidentia-translate",
+    "/v1/aurora/evidentia-pdf",
+    "/v1/aurora/evidentia-dossier",
+    "/v1/aurora/evidentia-summary"
+   ],
+   "default": "admin"
+  },
+  {
+   "id": "interpret",
+   "area": "chat",
+   "icon": "🌍",
+   "it": "Interprete",
+   "en": "Interpreter",
+   "pages": [
+    "interpret"
+   ],
+   "plugins": [],
+   "api": [
+    "/v1/aurora/interpret"
+   ],
+   "default": "all"
+  },
+  {
+   "id": "anonchat",
+   "area": "chat",
+   "icon": "🕶️",
+   "it": "Chat anonima",
+   "en": "Anonymous chat",
+   "pages": [
+    "anonchat"
+   ],
+   "plugins": [],
+   "api": [],
+   "default": "all"
+  },
+  {
+   "id": "phoneapp",
+   "area": "admin",
+   "icon": "📱",
+   "it": "App per il telefono e il computer",
+   "en": "Phone and computer app",
+   "pages": [
+    "phoneapp"
+   ],
+   "plugins": [],
+   "api": [
+    "/v1/aurora/app"
+   ],
+   "default": "all"
+  }
+ ],
+ "user_plugins": [
+  "cinema",
+  "discord",
+  "documents",
+  "dropbox",
+  "email",
+  "github",
+  "nextcloud",
+  "news",
+  "notes",
+  "telegram",
+  "twitch",
+  "weather",
+  "web",
+  "whatsapp",
+  "vista"
+ ],
+ "_doc_user_plugins": "N167 (owner, 27 Nov: «i plugin… diventassero a livello utente… solo quelli come ntfy, link checker e cose che hanno un senso di essere amministrative… solo per l'admin»): a plugin in no feature is open to everyone by default when it is listed here — each one's account settings are of scope user, so nobody acts with another's account; every other one (ntfy, linkcheck, self, cloud, senses, security, the backup, the machine's Home Assistant tools, a new or forged plugin) is the admin's until the admin opens it. It replaces plg_access's FOR_USERS (4 Oct)."
+}

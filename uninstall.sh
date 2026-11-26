@@ -81,6 +81,13 @@ if [ -f /etc/polkit-1/rules.d/50-aurora.rules ]; then run sudo rm -f /etc/polkit
 if [ -e /usr/local/bin/aurora-desk ] && [ -x /usr/local/sbin/aurora-root ]; then
   run sudo /usr/local/sbin/aurora-root uninstall desk; ok "Aurora Desktop"
 fi
+# Evidentia (an add-on): its service, backup timer, NAS mount and settings; its archive and its backups stay (27 Nov:
+# it ran only where Aurora Desktop was installed too — now on its own)
+if [ -f /etc/aurora/evidentia.env ] && [ -x /usr/local/sbin/aurora-root ]; then
+  run sudo /usr/local/sbin/aurora-root uninstall evidentia; ok "$(t 'Evidentia (il suo archivio resta)' 'Evidentia (its archive stays)')"
+fi
+# the result of the last restore asked from the page (N164): root's small folder
+if [ -d /var/lib/aurora-restore ]; then run sudo rm -rf /var/lib/aurora-restore; ok "/var/lib/aurora-restore"; fi
 # root's own copy of the code its units ran (sys_root_sync): nothing runs it any more
 if [ -d /usr/local/lib/aurora ]; then run sudo rm -rf /usr/local/lib/aurora; ok "/usr/local/lib/aurora"; fi
 if command -v caddy >/dev/null && [ -d "$HOME/.local/share/caddy/pki" ]; then

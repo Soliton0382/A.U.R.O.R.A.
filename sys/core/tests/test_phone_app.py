@@ -28,7 +28,8 @@ def test_the_newest_version_is_offered(cfg, tmp_path, monkeypatch):
 
 def test_both_routes_need_a_login():
     routes = re.findall(r'@router\.get\("([^"]+)", dependencies=\[Depends\((\w+)\)\]\)', SRC)
-    assert routes == [("/v1/aurora/app", "auth"), ("/v1/aurora/app/download", "auth")]
+    assert routes == [("/v1/aurora/app", "auth"), ("/v1/aurora/app/download", "auth"),
+                      ("/v1/aurora/app/desk", "auth")]                       # N169: the computer's package, logged in too
     assert "'phone_app'" in (ROOT / "aurora" / "api" / "__init__.py").read_text()
 
 

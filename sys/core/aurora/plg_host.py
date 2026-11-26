@@ -77,6 +77,19 @@ def _redacted_log(path: Path):
     return os.fdopen(w, "w", encoding="utf-8")
 
 
+def _plugin_user(cfg) -> str:
+    """R15: the user a plugin works for, given to it (Evidentia's archive is theirs); the admin as no user — the
+    owner of what was there before multi-user, whatever their account's name."""
+    u = str(getattr(cfg, "user", "") or "")
+    if not u:
+        return ""
+    try:
+        from .sys_users import Users
+        return "" if u == Users(cfg.base or cfg).admin_name() else u
+    except Exception:  # noqa: BLE001 — no users' database (single-user): no user
+        return ""
+
+
 @dataclass
 class Plugin:
     name: str
@@ -220,7 +233,8 @@ class PluginHost:
             cmd.append(a)
         env = {"PATH": os.environ.get("PATH", "/usr/bin:/bin"), "HOME": os.environ.get("HOME", ""),
                "AURORA_ENV_FILE": str(self.cfg.env_file), "PYTHONPATH": str(Path(__file__).resolve().parents[1]),
-               "AURORA_PLUGIN": p.name}                 # its config is its user's filtered one, taken as it is (U3)
+               "AURORA_PLUGIN": p.name,                 # its config is its user's filtered one, taken as it is (U3)
+               "AURORA_PLUGIN_USER": _plugin_user(self.cfg)}   # R15: whose work (Evidentia's archive)
         from . import plg_sandbox
         # a plugin Aurora wrote herself (9 Nov): its own settings only (AURORA_<NAME>_…), never another's value
         if plg_sandbox.forged(p.manifest):           # nor a key of Aurora's core or another plugin (audit 9 Nov)

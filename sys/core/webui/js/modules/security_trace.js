@@ -60,7 +60,7 @@ function arcPoints(a, b, k = 48) {
 
 export default {
   id: "sectrace",
-  icon: "🌍",
+  icon: "🗺️",
   title: "nav.sec.trace",
 
   mount(root) {

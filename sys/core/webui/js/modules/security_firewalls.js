@@ -34,7 +34,7 @@ function input(value, type = "text") {
 
 export default {
   id: "firewalls",
-  icon: "🔌",
+  icon: "📡",
   title: "nav.sec.firewalls",
 
   mount(root, ctx) {

@@ -6,7 +6,7 @@ import { renderIdeas } from "./ideas.js";
 
 export default {
   id: "ideas",
-  icon: "💡",
+  icon: "🗒️",
   title: "nav.ideas",
 
   mount(root) {

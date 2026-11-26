@@ -2,6 +2,11 @@
 /* Copyright 2026 A.U.R.O.R.A. Project */
 /* Chat module: conversation over the sky, Aurora's messages with their collapsible path. */
 .view.chat { overflow: hidden; }
+/* N165 F3: the chat's tabs over the conversation, which takes the rest of the height (its input never cut off) */
+.view.chat.has-tabs:not(.hidden) { display: flex; flex-direction: column; }   /* never over .hidden */
+.view.chat.has-tabs > .conversation { height: auto; flex: 1; min-height: 0; }
+.chat-tabs { flex: 0 0 auto; padding: .5rem clamp(.8rem, 4vw, 3rem) 0; margin: 0; }
+.chat-tabs[hidden] { display: none; }
 /* The whole window: messages keep a readable width inside it, the scrollbar sits at the window edge. */
 .conversation { display: flex; flex-direction: column; height: 100%; padding: 0 0 max(.8rem, env(safe-area-inset-bottom)); }
 .messages { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: .8rem;

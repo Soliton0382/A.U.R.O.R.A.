@@ -55,55 +55,5 @@ export async function backupRow() {
   return row;
 }
 
-// ♻️ restore (owner, 2026-10-06): the snapshots with whether they fit this Aurora (sys_formats), and the command that
-// restores one — it stops Aurora and moves the data aside, so it runs in a terminal, never from this page
-export function restoreBox() {
-  const d = el("details", "report");
-  d.append(el("summary", "", `♻️ ${t("bk.restore")}`));
-  const body = el("div");
-  d.append(body);
-  d.addEventListener("toggle", async () => {
-    if (!d.open || body.dataset.done) return;
-    body.dataset.done = "1";
-    body.replaceChildren(el("p", "muted", t("bk.reading")));
-    let rows;
-    try { rows = await call("/v1/aurora/backup/snapshots"); } catch (e) { body.replaceChildren(el("p", "error", t("ev.error", { m: e.message }))); return; }
-    const mark = { same: "✅", migrate: "🔄", unknown: "ℹ️", newer: "⛔" };
-    body.replaceChildren(el("p", "muted", t("bk.selective")), el("p", "muted", t("bk.restore_hint")), ...rows.map((r) => {
-      const row = el("div", "ev");
-      row.append(el("span", "ic", mark[r.compat.verdict] || "•"), el("strong", "", r.snapshot),
-        el("span", "muted", `${r.files} file · ${(r.bytes / 1e9).toFixed(1)} GB · ${t(`bk.v.${r.compat.verdict}`)}`));
-      if (r.compat.verdict === "newer") { row.append(el("span", "error", r.compat.why)); return row; }
-      // what goes back (sys_backup_parts): all of it by default; the command says the choice
-      const boxes = Object.entries(r.parts || {}).filter(([, v]) => v.files).map(([name, v]) => {
-        const box = el("input");
-        box.type = "checkbox";
-        box.checked = true;
-        box.dataset.part = name;
-        const label = el("label", "muted", " ");
-        label.prepend(box);
-        label.append(`${t(`bk.part.${name}`)} (${(v.bytes / 1e9).toFixed(v.bytes < 1e8 ? 3 : 1)} GB)`);
-        label.style.marginRight = "12px";
-        return { box, label };
-      });
-      const command = () => {
-        const on = boxes.filter((x) => x.box.checked).map((x) => x.box.dataset.part);
-        return on.length === boxes.length ? r.command : `${r.command} --parts ${on.join(",")}`;
-      };
-      const copy = el("button", "", `📋 ${t("bk.copy")}`);
-      copy.addEventListener("click", async () => {
-        if (!boxes.some((x) => x.box.checked)) return;
-        try { await navigator.clipboard.writeText(command()); copy.textContent = `✅ ${t("idea.copied")}`; }
-        catch { copy.replaceWith(el("code", "", command())); }
-      });
-      row.append(copy);
-      if (!boxes.length) return row;
-      const choice = el("div", "");
-      choice.append(...boxes.map((x) => x.label));
-      const both = el("div");
-      both.append(row, choice);
-      return both;
-    }));
-  });
-  return d;
-}
+// ♻️ restore: its own module (restore.js), re-exported for the pages that import it from here
+export { restoreBox } from "./restore.js";

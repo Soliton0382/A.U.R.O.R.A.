@@ -1,0 +1,41 @@
+{
+ "name": "evidentia",
+ "version": "1.0",
+ "kind": "mcp",
+ "description": {
+  "en": "Evidentia, the document investigator (an add-on): search passages, read pages, cross identifiers, run its agents and leads; every answer with its document and page. Its archive stays apart from Aurora: nothing of it enters her memory.",
+  "it": "Evidentia, l'investigatore dei documenti (un add-on): cerca passaggi, legge pagine, incrocia identificativi, fa lavorare i suoi agenti e le piste; ogni risposta con documento e pagina. Il suo archivio resta separato da Aurora: niente entra nella sua memoria."
+ },
+ "requires": [],
+ "memory": false,
+ "chat": true,
+ "command": [
+  "{python}",
+  "-I",
+  "-B",
+  "/usr/local/lib/aurora/sys/evidentia/script/svc_mcp.py"
+ ],
+ "sandbox": {
+  "read": [
+   "/usr/local/lib/aurora/sys/evidentia",
+   "/var/lib/evidentia-api"
+  ],
+  "network": false
+ },
+ "effects": {
+  "find_passages": "read",
+  "read_page": "read",
+  "document_info": "read",
+  "same_identifier": "read",
+  "list_agents": "read",
+  "case_leads": "read",
+  "open_lead": "write_local",
+  "next_lead": "write_local",
+  "report_lead": "write_local",
+  "contacts": "read",
+  "correspondence": "read",
+  "chain": "read",
+  "people": "read",
+  "*": "external"
+ }
+}

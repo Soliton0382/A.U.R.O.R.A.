@@ -6,6 +6,9 @@
     python sys/core/script/sys_restore.py --plan  <snapshot>  # what a restore would do (changes nothing)
     python sys/core/script/sys_restore.py --apply <snapshot>  # do it: asks to type RIPRISTINA
     python sys/core/script/sys_restore.py --apply <snapshot> --parts config,memory    # only these (sys_backup_parts)
+    python sys/core/script/sys_restore.py --apply <snapshot> --user anna             # only one user's data (27 Nov)
+    python sys/core/script/sys_restore.py --evidentia <snapshot>                      # Evidentia's own archive (27 Nov)
+    python sys/core/script/sys_restore.py --from-request                              # what the WebUI asked (aurora-restore)
 
 What --apply does, in this order, as root where Aurora has her own account (only root can stop her units and write
 every folder; each file ends with the owner of the folder it goes in), and a failure puts everything back as it was:
@@ -233,7 +236,7 @@ class _Trees:
             os.close(f)
 
 
-def apply_parts(cfg, p: dict, parts: tuple[str, ...]) -> None:
+def apply_parts(cfg, p: dict, parts: tuple[str, ...], users: tuple[str, ...] = ()) -> None:
     """Only some parts back; the rest of this installation is not touched. File by file: what a part holds here today
     goes aside, whole, so that a shard of today never stays next to a registry of the backup. Any failure puts all back
     as it was, and Aurora starts again either way."""
@@ -241,7 +244,7 @@ def apply_parts(cfg, p: dict, parts: tuple[str, ...]) -> None:
     stage, aside = Path(p["stage"]), Path(p["aside"])
     print(f"1/6 formats: {p['compat']['verdict']} {p['compat']['why']}")
     print(f"2/6 restoring {', '.join(parts)} of {p['snapshot']} into {stage} …", flush=True)
-    r = sys_backup.restore(cfg, stage, p["snapshot"], parts=parts)
+    r = sys_backup.restore(cfg, stage, p["snapshot"], parts=parts, users=users)
     print(f"    {r['files']} files, {r['bytes'] / 1e9:.2f} GB, each checked")
     print("3/6 stopping Aurora …", flush=True)
     # the units too: an inactive target stops nothing, and they run on (found on a real restore: old memory served after it)
@@ -262,13 +265,15 @@ def apply_parts(cfg, p: dict, parts: tuple[str, ...]) -> None:
         print(f"4/6 today's {', '.join(parts)} aside into {aside}")
         plugins_rel = str(cfg.path("AURORA_PLUGINS_DIR").resolve().relative_to(root))
         for rel, path in list(sys_backup.files(cfg)):
-            if rel in KEEP_FROM_CODE or rel.startswith(plugins_rel + "/") or sys_backup_parts.part_of(cfg, rel) not in parts:
+            if rel in KEEP_FROM_CODE or rel.startswith(plugins_rel + "/") or sys_backup_parts.part_of(cfg, rel) not in parts \
+                    or users and sys_backup_parts.user_of(cfg, rel) not in users:
                 continue
             for src in (path, path.with_name(path.name + "-wal"), path.with_name(path.name + "-shm")):
                 if src.exists():
                     move(src, (aside / rel).with_name(src.name))
         if changed:
-            left = out_of_reach(cfg, parts)
+            left = [(rel, path) for rel, path in out_of_reach(cfg, parts)   # one user back: only that user's, never the others'
+                    if not users or sys_backup_parts.user_of(cfg, rel) in users]
             print(f"    the backup's keys are not today's: {len(left)} files sealed with today's go aside too, they would not open")
             for rel, path in left:
                 move(path, aside / rel)
@@ -371,16 +376,114 @@ def notes(parts: tuple[str, ...]) -> str:
     return "\n".join(f"  ℹ️ {x}" for x in out)
 
 
+# ---- a restore asked from the WebUI (owner, 27 Nov: «non solo da riga di comando ma anche dalla web ui») ---------
+# The page asks (admin, password and the authenticator's code again: api/backup.py), the API writes one request into
+# her status folder and starts aurora-restore (root; polkit: aurora units). Root reads it here as data, strictly: a
+# snapshot's name, parts and users from their own lists, nothing else; no older than 10 minutes; read once. What it
+# does is what --apply does (today's data aside, never deleted). The result goes to /var/lib/aurora-restore, root's,
+# readable by the page after Aurora is back.
+REQUEST = "restore-request.json"
+RESULT = Path("/var/lib/aurora-restore/result.json")
+SNAP = __import__("re").compile(r"^(latest|\d{8}-\d{6})$")
+EVD_PY = "/usr/local/lib/aurora-evidentia/venv/bin/python"
+EVD_BACKUP = "/usr/local/lib/aurora/sys/evidentia/script/evd_backup.py"
+
+
+def read_request(cfg, max_age: float = 600) -> dict:
+    """The request, checked; ValueError for anything else. Removed once read."""
+    folder = cfg.path("AURORA_STATUS_DIR") / "backup"
+    f = folder / REQUEST
+    fd = os.open(f, os.O_RDONLY | os.O_NOFOLLOW)
+    try:
+        st = os.fstat(fd)
+        if not stat.S_ISREG(st.st_mode) or st.st_size > 4096 or st.st_uid != folder.stat().st_uid or st.st_mode & 0o022:
+            raise ValueError("the request is not a small file of Aurora's own, writable by her alone")
+        raw = os.read(fd, 4097)
+    finally:
+        os.close(fd)
+        f.unlink(missing_ok=True)                       # once: a request is never run twice
+    r = json.loads(raw)
+    kind = r.get("kind")
+    snap = str(r.get("snapshot", ""))
+    if kind not in ("aurora", "evidentia") or not SNAP.match(snap):
+        raise ValueError("a request: kind aurora or evidentia, and a snapshot's name")
+    if not isinstance(r.get("at"), (int, float)) or not 0 <= time.time() - r["at"] <= max_age:
+        raise ValueError("the request is older than 10 minutes: ask again from the page")
+    parts = sys_backup_parts.chosen(",".join(r["parts"])) if r.get("parts") else ()
+    users = tuple(str(u) for u in r.get("users") or ())
+    from aurora.sys_users_groups import NAME
+    if any(not NAME.match(u) for u in users):
+        raise ValueError("a user's name: lowercase letters, digits, _ and -")
+    return {"kind": kind, "snapshot": snap, "parts": parts, "users": users, "by": str(r.get("by", ""))[:64]}
+
+
+def write_result(out: dict, path: Path | None = None) -> None:
+    path = path or RESULT
+    path.parent.mkdir(mode=0o755, parents=True, exist_ok=True)
+    tmp = path.with_suffix(".tmp")
+    tmp.write_text(json.dumps({**out, "at": time.time()}))
+    os.chmod(tmp, 0o644)
+    tmp.replace(path)
+
+
+def evidentia(snapshot: str, run=subprocess.run, users: tuple[str, ...] = ()) -> dict:
+    """Evidentia's archives from its own backup: all, or only these users' (R15)."""
+    extra = [a for u in users for a in ("--user", u)]
+    r = run([EVD_PY, "-I", "-B", EVD_BACKUP, "apply", snapshot, *extra], capture_output=True, text=True, timeout=6 * 3600)
+    if r.returncode:
+        raise SystemExit(f"⛔ Evidentia: {(r.stderr or r.stdout).strip()[-300:]}")
+    return json.loads(r.stdout)
+
+
+def from_request(cfg) -> int:
+    try:
+        r = read_request(cfg)
+    except (OSError, ValueError) as e:
+        write_result({"ok": False, "error": f"{type(e).__name__}: {e}"[:300]})
+        print(f"⛔ {e}")
+        return 1
+    write_result({"ok": None, "running": True, **{k: list(v) if isinstance(v, tuple) else v for k, v in r.items()}})
+    try:
+        if r["kind"] == "evidentia":
+            out = evidentia(r["snapshot"], users=r["users"])
+        else:
+            p = plan(cfg, r["snapshot"])
+            if not p["restorable"]:
+                raise SystemExit(f"⛔ not restorable here: {p['compat']['why']}")
+            apply_parts(cfg, p, r["parts"] or sys_backup_parts.PARTS, r["users"])
+            out = {"snapshot": p["snapshot"], "aside": p["aside"]}
+    except (SystemExit, Exception) as e:            # noqa: BLE001 — said on the page; apply_parts puts all back itself
+        write_result({"ok": False, "kind": r["kind"], "snapshot": r["snapshot"], "error": str(e)[:300]})
+        raise
+    write_result({"ok": True, "kind": r["kind"], "snapshot": r["snapshot"], "parts": list(r["parts"]),
+                  "users": list(r["users"]), "by": r["by"], **{k: v for k, v in out.items() if k in ("files", "aside", "snapshot")}})
+    return 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--plan", metavar="SNAPSHOT")
     ap.add_argument("--apply", metavar="SNAPSHOT")
     ap.add_argument("--parts", default="", help="only these parts: " + ",".join(sys_backup_parts.PARTS))
+    ap.add_argument("--user", action="append", default=[], help="only this user's data (repeatable)")
+    ap.add_argument("--evidentia", metavar="SNAPSHOT", help="Evidentia's archive from its own backup")
+    ap.add_argument("--from-request", action="store_true", help="what the WebUI asked (run by aurora-restore)")
     ap.add_argument("--json", action="store_true")
     ap.add_argument("--code", action="store_true", help="ask the backup's recovery code (its key is sealed for "
                     "Aurora's services, C461)")
     a = ap.parse_args()
     cfg = sys_config.get()
+    if a.from_request:
+        return from_request(cfg)
+    if a.evidentia:
+        if not SNAP.match(a.evidentia):
+            print("⛔ a snapshot's name: latest or YYYYMMDD-HHMMSS")
+            return 1
+        if input(f"Ripristinare l'archivio di Evidentia {a.evidentia} (quello di oggi messo da parte)? Scrivi RIPRISTINA: ").strip() != "RIPRISTINA":
+            print("annullato")
+            return 1
+        print(json.dumps(evidentia(a.evidentia, users=tuple(a.user)), indent=1))
+        return 0
     if a.code:
         import getpass
         sys_backup.use_code(getpass.getpass("Backup recovery code: "))
@@ -405,11 +508,11 @@ def main() -> int:
     if needs_root(cfg) and os.geteuid() != 0:
         print("⛔ Aurora has her own account: as root, through root's own copy: sudo aurora-root restore …")
         return 1
-    what = f"{', '.join(parts)} di " if parts else ""
+    what = (f"{', '.join(parts)} di " if parts else "") + (f"utente {', '.join(a.user)}, " if a.user else "")
     if input(f"Ripristinare {what}{p['snapshot']} al posto dei dati di oggi (messi da parte, non cancellati)? Scrivi RIPRISTINA: ").strip() != "RIPRISTINA":
         print("annullato")
         return 1
-    apply_parts(cfg, p, parts or sys_backup_parts.PARTS)
+    apply_parts(cfg, p, parts or sys_backup_parts.PARTS, tuple(a.user))
     return 0
 
 

@@ -246,3 +246,33 @@ def test_on_a_new_machine_the_backup_s_key_comes_back_from_its_code(installed):
     B.key_path(cfg).unlink()
     assert B.init_key(cfg, code) == code
     assert B.run(cfg)["ok"] and len(B.snapshots(B.target(cfg))) >= 1
+
+
+def test_each_path_has_its_user(cfg):
+    status = str(cfg.path("AURORA_STATUS_DIR").relative_to(cfg.root))
+    vault, index = (str(cfg.path(k).relative_to(cfg.root)) for k in ("AURORA_VAULT_DIR", "AURORA_INDEX_DIR"))
+    cases = {"usr/ann/documents/a.pdf": "ann", "usr/ann/.env": "ann", f"{status}/users/bob/shadow.db": "bob",
+             f"{vault}/memory/users/ann/registry.db": "ann", f"{index}/memory/users/bob/conversation/v.f16": "bob",
+             f"{status}/routines.json": None, f"{vault}/knowledge/law/0001.db": None, ".env": None, "usr/README": None}
+    assert {r: P.user_of(cfg, r) for r in cases} == cases
+
+
+def test_one_user_goes_back_and_the_others_stay_as_today(installed, monkeypatch, tmp_path_factory):
+    """Owner, 27 Nov: one user's data back, quickly, without a whole restore."""
+    cfg, tmp_path = installed, tmp_path_factory.mktemp("next-to-it")
+    files = {u: cfg.root / "usr" / u / "documents" / "note.txt" for u in ("ann", "bob")}
+    for f in files.values():
+        f.parent.mkdir(parents=True, exist_ok=True)
+        f.write_text("backup")
+    B.run(cfg)
+    for f in files.values():
+        f.write_text("today")
+    (cfg.path("AURORA_STATUS_DIR") / "routines.json").write_text("today")
+    only = B.restore(cfg, tmp_path / "into", users=("ann",))
+    assert only["files"] == 1 and (tmp_path / "into" / "usr" / "ann" / "documents" / "note.txt").exists()
+    R = _restore_script()
+    monkeypatch.setattr(R.subprocess, "run", lambda *a, **k: type("X", (), {"returncode": 0, "stdout": "inactive"})())
+    p = {"snapshot": "latest", "compat": {"verdict": "same", "why": ""}, "stage": str(tmp_path / "stage"), "aside": str(tmp_path / "aside")}
+    R.apply_parts(cfg, p, P.PARTS, ("ann",))
+    assert files["ann"].read_text() == "backup" and files["bob"].read_text() == "today"
+    assert (cfg.path("AURORA_STATUS_DIR") / "routines.json").read_text() == "today"     # the machine's own: untouched

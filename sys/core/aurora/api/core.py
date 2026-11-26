@@ -290,6 +290,12 @@ async def auth(request: Request) -> None:
     if request.state.user == _admin():
         _assisting(request, dev)
     sys_context.CURRENT.set(request.state.user)
+    if request.state.user != _admin():                 # N165: a feature the admin keeps from this person
+        from aurora import sys_users_groups
+        base = BASE.base or BASE
+        f = sys_users_groups.of_path(request.url.path)
+        if f is not None and not sys_users_groups.may_use(base, request.state.user, f, _admin()):
+            raise HTTPException(status_code=403, detail=f"the admin keeps «{f}» from you (👥 Users → Access)")
 
 
 def _assisting(request: Request, dev: dict) -> None:
@@ -446,7 +452,8 @@ def start_run(question: str, origin: str, job=None) -> dict:
     if not mdl_tts.BUSY:
         mdl_tts.BUSY.append(lambda: any(not r["done"] for r in list(_runs.values())))
     threading.Thread(target=mdl_tts.release, daemon=True, name="tts-release").start()
-    note(origin, "run.begin", {"run_id": run["id"], "question": "🕶️" if origin == "anon" else question, "origin": origin})
+    hidden = {"anon": "🕶️", "evidentia": "🕵️"}.get(origin)   # an anonymous run, an Evidentia run: never the text
+    note(origin, "run.begin", {"run_id": run["id"], "question": hidden or question, "origin": origin})
 
     from aurora import sys_runs
 

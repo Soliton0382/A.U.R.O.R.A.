@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/img/banner.en.svg" alt="A.U.R.O.R.A." width="100%"></p>
 
-<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-2624%20passed-1baf7a" alt="Tests"> <img src="https://img.shields.io/badge/code-151k%20lines-6a4fd6" alt="Lines of code"> <a href="https://doi.org/10.5281/zenodo.23650856"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.23650856.svg" alt="DOI"></a></p>
+<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-2712%20passed-1baf7a" alt="Tests"> <img src="https://img.shields.io/badge/code-153k%20lines-6a4fd6" alt="Lines of code"> <a href="https://doi.org/10.5281/zenodo.23650856"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.23650856.svg" alt="DOI"></a></p>
 
 <p align="center">🇮🇹 <a href="README.md">Italiano</a> · 🇬🇧 <b>English</b></p>
 
@@ -74,6 +74,7 @@ exemption, and what leaves is always masked (no setting turns it off).
 | **Attackers behind Cloudflare** | the firewall sees Cloudflare's nodes only: with the right permissions in the token (the 🛡️ Security → ☁️ Cloudflare page lists them) Aurora reads who is behind them (clients your server did not answer, with paths and «what they look like»), blocks them at Cloudflare with your approval or by herself if you switch on `AURORA_CLOUDFLARE_AUTOBLOCK` (scanners only, for a time, at most N a day); Cloudflare's traffic the firewall already refused becomes a count, not an incident; a shared address is blocked on the attacked port only (M213) |
 | **Honeypot against prompt injection** | like SmartScreen for downloaded files: pages, searches, e-mails, comments and documents from the network are marked and tried first on a decoy — the local model, fake tools, a fake key, no network or VM; if the decoy acts, the content never reaches Aurora or the vault, the site is listed as malicious and you are told (reporting it to VirusTotal is your approval). By reputation: a «green» site only where suspicious words are, an unknown or doubtful one whole. Measured: 13 of 24 traps caught (6 of 8 with no obvious sign), 0 false alarms; Claude as the decoy catches none, because it never falls (M215, C317) |
 | **Health** | ❤️ page: the dietitian's plans, the trainer's programmes, exams, sealed with your key; from the exams the local model reads the values (📈 over time, with the reference range and the values outside it flagged "talk to your doctor"); never to the cloud |
+| **Aurora on a computer** | Aurora's window with its notifications on the desktop: on Aurora's machine it connects by itself; on another Linux computer it is downloaded from 📱 App → 🖥️ (`tar -xzf aurora-desk-client.tar.gz && sh aurora-desk-client/install.sh`, for your user only, nothing as root) and the first time asks your Aurora's address and port, with the Android app's form |
 | **Aurora Desktop (learns, version 1)** | an app on the Linux desktop (`sudo aurora-root install desk`): at login it sits in the system tray by the clock, idle until used; open it from there or from the menu. Press «Mostrami», choose a window and work: Aurora records only that window, writes the procedure (steps, anchors that do not depend on the language, parameters) and shows it to you; example values stay only if you keep them; you save it as a draft and try it on the virtual desktop with real keys, never on yours. It does not act on your desktop: that comes with version 2 (TOTP code and verifier). Measured on the bench: 30 demonstrations out of 30 became drafts that work with new values (M336); passwords and codes never recorded, 0 out of 25 (M338; KDE programs do send a password's characters to accessibility listeners: do not type passwords during a demonstration, C745); accessibility is on only while recording and goes back as it was even after a crash (20 out of 20) |
 | **Weather** | 🌦️ plugin (Open-Meteo, no key): now, 3-day forecast, daily report, alerts on sudden changes and the region's official warnings (MeteoAlarm) |
 | **Follow-up questions** | "and who discovered it?" is completed with the conversation and the previous answer, its sources in focus; under each answer 3-4 complete questions to go deeper, each with its sources (M73: follow-ups right 2 → 6 of 14, suggestions 8 of 11 scored ≥ 7; 0 of 20 complete questions changed) |
@@ -702,6 +703,25 @@ cloud model of your choice and every text leaves masked.
 
 On Windows and the Mac, for now: no local reasoner, no Aurora's voice, no plugins (their cage is coming). The Mac is
 tried on a real Mac of GitHub Actions (Install workflow), not by hand yet.
+
+## 🕵️ Evidentia: the document investigator (add-on)
+
+For a law office, or an investigation of a large document collection: Evidentia reads a folder by levels (text, OCR of
+scans), searches passages, crosses identifiers, rebuilds from the documents who appears and in which role, opens leads
+and has its agents work them (20, in two packs: investigative and legal). Its rules: **every claim with document and
+page**; fact, testimony and allegation always kept apart; relations only from the documents, by kind, never a
+«score»; protected and redacted names never leave; photos of people are not analysed. Collections and numbering
+(Bates or other) are configured, not written in the code.
+
+It is an **add-on**: a service of its own (account `evidentia`, local socket, no network), run from root's signed copy;
+Aurora is only its client. **Its archive never enters Aurora**: no vault, no memory, no lessons; its dedicated chat uses
+only its tools, on the local model. Install: the question of `install.sh` (or `--with-evidentia`), then
+`sudo aurora-root install evidentia`; each user's data in their own `usr/<user>/evidentia`, which Aurora cannot read.
+
+**Backup**: its own and separate, with the same method as Aurora's (encrypted, deduplicated, daily, weekly and
+monthly retention, a sample checked) in the same destination, folder `evidentia/`, but with **its own key**: the
+recovery code is shown once at install. Restore into an empty folder:
+`sudo /usr/local/lib/aurora-evidentia/venv/bin/python -I /usr/local/lib/aurora/sys/evidentia/script/evd_backup.py restore <folder>`.
 
 ## 📚 Aurora starts empty: knowledge is harvested
 

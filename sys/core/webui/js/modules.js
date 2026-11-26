@@ -62,13 +62,24 @@ import https from "./modules/https.js";
 import home from "./modules/home.js";
 import keys from "./modules/keys.js";
 import people from "./modules/people.js";
+import backup from "./modules/backup_page.js";
 import { kinds as homeKinds } from "./modules/home.js";
 
 // this installation's own pages (js/local, never published): added when present
 let local = { views: [] };
 try { local = await import("./local/index.js"); } catch { /* none on this installation */ }
+// the installed add-ons' pages (sys/<name>/addon/webui, GET /v1/aurora/addons: e.g. Evidentia, 27 Nov), as local's
+try {
+  const { call } = await import("./api.js");
+  for (const a of (await call("/v1/aurora/addons")).addons || []) {
+    try {
+      const m = await import(a.entry);
+      local = { ...local, views: [...(local.views || []), ...(m.views || [])], groups: [...(local.groups || []), ...(m.groups || [])] };
+    } catch { /* an add-on whose pages do not load: the rest of the WebUI goes on */ }
+  }
+} catch { /* not signed in yet, or no add-on */ }
 
-export const views = [today, advanced, chat, anonchat, interpret, approvals, reports, secFirewalls, secEdge, security, ciso, firewall, aurorafw, secDefence, secWatch, secOut, secEgress, secTrace, autonomy, diary, dreams, memory, social, dj, care, expenses, astro, home, consoles, calendar, projects, routines, models, accounts, plugins, importDocs, uploads, harvester, synapses, runs, status, notifications, updates, users, usage, settings, https, ups, hosts, guide, bugreport, ideas, phoneApp, keys, people];
+export const views = [today, advanced, chat, anonchat, interpret, approvals, reports, secFirewalls, secEdge, security, ciso, firewall, aurorafw, secDefence, secWatch, secOut, secEgress, secTrace, autonomy, diary, dreams, memory, social, dj, care, expenses, astro, home, consoles, calendar, projects, routines, models, accounts, plugins, importDocs, uploads, harvester, synapses, runs, status, notifications, updates, users, usage, settings, https, ups, hosts, guide, bugreport, ideas, phoneApp, keys, people, backup];
 // the public pages this installation's own replace (local.hides: ids), out of the menu
 const shownKinds = homeKinds.filter((v) => !(local.hides || []).includes(v.id));
 views.push(...shownKinds, ...local.views);
@@ -79,13 +90,13 @@ export const widgets = [sky, alerts, metrics, brain];
 export const groups = [
   { id: "today", views: ["today"] },
   { id: "chat", views: ["chat"] },
-  { id: "anonchat", views: ["anonchat"] },              // 🕶️ the anonymous chat, beside the chat (owner, 20 Oct)
-  { id: "interpret", views: ["interpret"] },            // 🌍 the interpreter, a page of its own (owner, 24 Oct)
-  { id: "activity", icon: "🛎️", title: "nav.g.activity", views: ["approvals", "notifications", "reports", "runs"] },
+  // 🕶️ the anonymous chat (20 Oct) and 🌍 the interpreter (24 Oct): tabs of 💬 the chat since N165 F3 (owner, 27 Nov:
+  // «sotto una sola voce, come schede») — out of the menu (menu: false below), their ids open them as before
+  { id: "activity", icon: "📬", title: "nav.g.activity", views: ["approvals", "notifications", "reports", "runs"] },
   { id: "life", icon: "✨", title: "nav.g.life", views: ["calendar", "people", "diary", "dreams", "memory", "social", "dj", "care", "expenses", "astro"] },
   // 🏠 the house (owner, 2026-10-12: «sotto casa avremmo tab casa e poi…»): Home Assistant's pages
   // 🖥️ the devices' own management pages, beside the house (owner, 28 Oct)
-  { id: "home", icon: "🏠", title: "nav.g.home", views: ["home", "consoles", ...shownKinds.map((v) => v.id),
+  { id: "home", icon: "🏡", title: "nav.g.home", views: ["home", "consoles", ...shownKinds.map((v) => v.id),
   ...local.views.filter((v) => v.group === "home").map((v) => v.id)] },
   { id: "work", icon: "🛠️", title: "nav.g.work", views: ["projects", "routines", "uploads"] },
   { id: "knowledge", icon: "📚", title: "nav.g.knowledge", views: ["import", "harvester", "synapses"] },
@@ -95,7 +106,9 @@ export const groups = [
   { id: "security", icon: "🛡️", title: "nav.g.security", views: ["firewalls", "edge", "security", "ciso", "firewall", "aurorafw", "secegress", "sectrace"] },
   // ⚙️ the system, with how free Aurora is and the phone app (owner, 27 Oct: «app per il telefono lo metterei sotto la
   // voce sistema… anche autonomia»)
-  { id: "system", icon: "⚙️", title: "nav.g.system", views: ["status", "autonomy", "models", "accounts", "plugins", "users", "usage", "settings", "https", "updates", "ups", "hosts", "keys", "phoneapp"] },
+  // N165 F3 (owner, 27 Nov): ⚙️ the system was 14 pages — split: 💻 the machine, 🗝️ the people and the rules
+  { id: "system", icon: "💻", title: "nav.g.system", views: ["status", "models", "updates", "https", "ups", "hosts", "keys"] },
+  { id: "admin", icon: "🗝️", title: "nav.g.admin", views: ["users", "accounts", "usage", "autonomy", "settings", "backup", "plugins", "phoneapp"] },
   { id: "help", icon: "❓", title: "nav.g.help", views: ["guide", "bugreport", "ideas"] },
 ];
 // the machine's pages (owner, 2026-10-06, multi-user): a user sees neither them in the menu nor their data (the API
@@ -105,6 +118,7 @@ for (const g of groups) if (g.id !== "home") g.views.push(...local.views.filter(
 // an area of this installation's own (local.groups: its id, icon, title and pages), before ❓ Help
 groups.splice(groups.findIndex((g) => g.id === "help"), 0, ...(local.groups || []));
 
-export const adminOnly = new Set(["firewalls", "edge", "security", "ciso", "firewall", "aurorafw", "secdefence", "secwatch", "secout", "secegress", "sectrace", "models", "harvester", "synapses", "status", "updates", "import", "https"]);
+for (const v of [anonchat, interpret]) v.menu = false;      // tabs of 💬 (chat_tabs.js)
+export const adminOnly = new Set(["backup", "firewalls", "edge", "security", "ciso", "firewall", "aurorafw", "secdefence", "secwatch", "secout", "secegress", "sectrace", "models", "harvester", "synapses", "status", "updates", "import", "https"]);
 // a page may say it is the admin's alone (adminOnly: true), e.g. an installation's own pages about the house
 for (const v of views) if (v.adminOnly) adminOnly.add(v.id);

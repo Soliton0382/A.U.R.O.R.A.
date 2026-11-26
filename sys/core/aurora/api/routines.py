@@ -394,12 +394,15 @@ def _automations(who: str | None, parts: dict | None = None) -> None:
 
 
 def _local_ticks(who: str | None, parts: dict | None = None) -> None:
-    """This installation's own extensions (aurora/local), each user's tick, each timed (C600); none: nothing."""
+    """The installed add-ons' and this installation's own extensions' (aurora/local) ticks, each user's, each timed
+    (C600); none: nothing."""
     import importlib.util
-    if not importlib.util.find_spec("aurora.local"):
-        return
-    from aurora import local
-    for tick in local.ticks():
+    from aurora import sys_addons                       # the installed add-ons' ticks first (27 Nov), then local's
+    ticks = list(sys_addons.ticks())
+    if importlib.util.find_spec("aurora.local"):
+        from aurora import local
+        ticks += list(local.ticks())
+    for tick in ticks:
         s = time.monotonic()
         try:
             tick(who)

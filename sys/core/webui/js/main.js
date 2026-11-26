@@ -2,6 +2,7 @@
 // Copyright 2026 A.U.R.O.R.A. Project
 // The shell: login, layout (side menu, top bar, views), and the modules it composes.
 // It holds no feature of its own: every feature is a module listed in modules.js.
+import { setHidden } from "./access.js";
 import { call, register } from "./api.js";
 import { bus } from "./bus.js";
 import { $, el } from "./dom.js";
@@ -179,21 +180,36 @@ function mountAll() {
   i18n.apply(document);
 }
 
+// 📌 the menu pinned open (this browser's choice, kept in localStorage; a wide screen only — see app.css)
+const PIN = "aurora.nav.pinned";
+function pinned() { try { return localStorage.getItem(PIN) === "1"; } catch { return false; } }
+function setPinned(on) {
+  try { localStorage.setItem(PIN, on ? "1" : "0"); } catch { /* private mode: for this page only */ }
+  document.body.classList.toggle("drawer-pinned", on);
+  document.getElementById("nav-pin")?.setAttribute("aria-pressed", on ? "true" : "false");
+}
+setPinned(pinned());
+document.getElementById("nav-pin")?.addEventListener("click", () => setPinned(!document.body.classList.contains("drawer-pinned")));
+
 function drawer(open) {
+  if (!open && document.body.classList.contains("drawer-pinned") && matchMedia("(min-width: 900px)").matches) return;
   document.body.classList.toggle("drawer-open", open);
   if (!open) document.querySelectorAll("#nav .nav-group.fly").forEach((g) => fly(g, false));
 }
 
-// the machine's pages hidden from a user (their API refuses them anyway)
+// the machine's pages hidden from a user (their API refuses them anyway); N165: and the pages of the features the
+// admin keeps from them (/me's «hidden»)
+let hidden = new Set();
+const blocked = (id) => !isAdmin && (adminOnly.has(id) || hidden.has(id));
 function adminNav() {
-  for (const id of adminOnly) if (!isAdmin) document.querySelectorAll(`#nav button[data-view="${id}"]`).forEach((b) => b.classList.add("hidden"));
+  for (const id of [...adminOnly, ...hidden]) if (!isAdmin) document.querySelectorAll(`#nav button[data-view="${id}"]`).forEach((b) => b.classList.add("hidden"));
   tidyNav();
 }
 
 const SHOWN = "aurora.view";                         // the page shown, for this tab only (a fresh open starts at home)
 
 async function show(id) {
-  if (!isAdmin && adminOnly.has(id)) id = "chat";
+  if (blocked(id)) id = "chat";
   current = id;
   try { sessionStorage.setItem(SHOWN, id); } catch { /* private mode: home after a reload */ }
   drawer(false);
@@ -218,6 +234,7 @@ addEventListener("aurora:acted", () => {
     const v = byId[current];
     if (!v?.enter || v.live === false || SELF_LIVE.has(v.id)) return;
     const section = $(`view-${current}`), a = document.activeElement;
+    if (section?.querySelector("[data-busy]")) return;  // C757: a step half done (a sign-in waiting for its code) stays
     if (section?.contains(a) && (a.isContentEditable || /^(TEXTAREA|SELECT)$/.test(a.tagName)
       || (a.tagName === "INPUT" && !/^(button|submit|checkbox|radio|range|file)$/.test(a.type)))) return;
     const y = window.scrollY, inner = $("views").scrollTop;
@@ -261,7 +278,7 @@ async function pluginNav() {
     let shown = v.needs === "firewall" ? !!firewalls
       : v.plugin === "social" ? list.some((p) => p.social && on(p)) : list.some((p) => p.name === v.plugin && on(p));
     if (shown && v.visible) shown = await v.visible().catch(() => false);   // a page with nothing to show stays out
-    document.querySelectorAll(`#nav button[data-view="${v.id}"]`).forEach((b) => b.classList.toggle("hidden", !shown || (!isAdmin && adminOnly.has(v.id))));
+    document.querySelectorAll(`#nav button[data-view="${v.id}"]`).forEach((b) => b.classList.toggle("hidden", !shown || (blocked(v.id))));
   }
   tidyNav();
 }
@@ -281,6 +298,9 @@ async function persona() {
     document.title = m.assistant || "Aurora";
     voice.setGender(m.gender);
     isAdmin = m.admin !== false;
+    hidden = new Set(m.hidden || []);
+    setHidden([...hidden, ...(isAdmin ? [] : adminOnly)]);
+    bus.emit("access", {});
     // this person's style, pins and language, from any device; their language not this browser's: drawn again in it
     if (adopt(m.prefs, m.name, Boolean(m.assist)) && m.prefs?.lang !== i18n.lang) { location.reload(); return; }
     applyStyle(currentStyle(isAdmin));                 // until chosen: Completo for the admin, Essenziale for a user
@@ -288,8 +308,9 @@ async function persona() {
     whoIs(m);
     assistBanner(m);
     adminNav();
-    if (!isAdmin && adminOnly.has(current)) show("chat");
+    if (blocked(current)) show("chat");
     firstSetup(m);
+    import("./push.js").then((x) => x.startLine()).catch(() => {});   // 🖥️ C758: the desktop window's notifications
     return m;
   } catch { return null; /* the defaults stay */ }
 }
@@ -388,7 +409,7 @@ buildNav();
 mountAll();
 navFind({ input: $("nav-find"), list: $("nav-found"), nav: $("nav"), views, groups, open: show,
   usable: (v) => {                                   // the person's pages only: never the admin's to a user (asked
-    if (!isAdmin && adminOnly.has(v.id)) return false; // first, before the menu's state), then as the menu shows them
+    if (blocked(v.id)) return false; // first, before the menu's state), then as the menu shows them
     const b = document.querySelector(`#nav .nav-full button[data-view="${v.id}"]`);
     return b ? !b.classList.contains("hidden") && !b.closest(".nav-group.hidden") : v.menu === false;
   } });

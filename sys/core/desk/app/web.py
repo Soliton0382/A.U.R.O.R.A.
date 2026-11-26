@@ -165,14 +165,22 @@ def main() -> int:
     app = QApplication(sys.argv)
     app.setApplicationName("Aurora")
     app.setDesktopFileName("aurora-desk")
-    if ask_running_to_show():
+    setup = os.environ.get("DESK_WEB_SETUP") == "1"     # the menu's «Cambia indirizzo di Aurora» (--web-setup)
+    if not setup and ask_running_to_show():
         return 0
+    from desk.app import address                        # Aurora here: asked nothing; else the Android app's form
+    url, why = address.choose(setup)
+    if url is None:
+        from desk.app import connect_form
+        url = connect_form.ask(address.saved())
+        if url is None:
+            return 0
     from PyQt6.QtGui import QPixmap
     from desk.app import icon
     pm = QPixmap()
     pm.loadFromData(icon.SVG.encode(), "SVG")
     app.setWindowIcon(QIcon(pm))
-    w = Window()
+    w = Window(url if url.endswith("/") else url + "/")
     server = QLocalServer()
     path = str(store.runtime_dir() / SOCKET)
     QLocalServer.removeServer(path)

@@ -110,6 +110,9 @@ for _name in MODULES:                               # each area of the API is it
     app.include_router(__import__(f"aurora.api.{_name}", fromlist=["router"]).router)
 import importlib.util  # noqa: E402
 
+from aurora import sys_addons as _addons          # add-ons (sys/<name>/addon), only those installed (27 Nov)
+for _router in _addons.routers():
+    app.include_router(_router)
 if importlib.util.find_spec("aurora.local"):      # this installation's own extensions (aurora/local), if any
     from aurora import local as _local
     for _router in _local.routers():
@@ -137,6 +140,8 @@ def webui_headers() -> dict:
 
 
 if WEBUI.is_dir():
+    for _name in _addons.installed():               # an add-on's pages, before the WebUI's own static files
+        app.mount(f"/static/addons/{_name}", WebUIFiles(directory=_addons.webui_dir(_name)), name=f"addon-{_name}")
     app.mount("/static", WebUIFiles(directory=WEBUI), name="static")
 
 

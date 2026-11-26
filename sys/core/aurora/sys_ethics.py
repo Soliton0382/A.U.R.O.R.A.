@@ -120,6 +120,7 @@ CODE_PATTERNS = ("install.sh", "uninstall.sh", "requirements.txt",
                  "sys/core/**/*.css", "sys/core/**/*.html", "sys/core/**/*.json", "sys/core/**/*.md", "sys/core/**/*.sh",
                  "sys/core/config/*",                           # C558: allowed_signers (the updater's trust) has no suffix
                  "sys/plugins/**/*",                            # C558: a plugin's sub-folders too (unsigned_plugins: the same)
+                 "sys/evidentia/**/*",                          # Evidentia, the add-on: root's copy runs it (27 Nov)
                  ".github/**/*",                                # C558: what CI runs on the published code
                  "sys/deploy/**/*")   # what root installs: aurora-root runs only these files as signed (sys_root, 9 Nov)
 DATA_FILES = ("sys/core/config/shadow_seed.json",)  # rewritten every day by its timer (C401): data, not code

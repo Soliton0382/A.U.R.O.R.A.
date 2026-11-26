@@ -147,6 +147,28 @@ keeps it out of the chat; «memory»: false keeps any answer that used it out of
 memory, a forge request, a repair's reflection, a project's report (C551).
 `test_mcp_servers.py`: a real server living outside Aurora answers from its cage and cannot read a file of the home.
 
+## 🕵️ Evidentia, the add-on (27 Nov 2026)
+
+Evidentia's archive must never reach Aurora (owner: «non voglio che aurora si sporchi con quei file»). The service runs
+as its own account «evidentia» from root's signed copy (/usr/local/lib/aurora/sys/evidentia), with root's venv built
+offline from a wheelhouse whose every wheel is pinned by SHA-256 (sys/evidentia/config/requirements-root.lock): the
+aurora user can change neither its code nor its Python. Its unit: no network (PrivateNetwork, AF_UNIX only),
+ProtectSystem=strict, ProtectHome=tmpfs with only its archive bound, no capabilities, a system-call filter. Groups:
+«evidentia» owns the archive (the owner in it, **aurora not**: she cannot read the files), «evidentia-api» reaches the
+socket (aurora in it: she asks, the server answers with passages and their sources). On Aurora's side (the add-on,
+loaded only where installed) nothing of the archive is kept: the dedicated chat's agent has Evidentia's tools only,
+none of Aurora's own (vault, people, forge), runs on the local model only, and the plugin's memory is off. The trace of what an agent did is not lost: it goes to the **case file's own audit trail** on Evidentia's side
+(<EVD_DATA_DIR>/audit/<case>.jsonl), appended only, each line chained to the one before by SHA-256 so that a line
+removed, changed or moved is found when the chain is verified; Aurora's own trace files keep nothing of these runs.
+Reviewed 27 Nov (MAJOR, fixed before installing): root reads the wheel lock from its signed copy, never the repository;
+the wheels are copied into root's folder before pip (binaries only, no dependency outside the lock); a new archive goes
+under /var/lib/evidentia/<user> (a root-owned parent: aurora can neither prepare nor replace it) made without following a
+link and with its ACLs cleared. Residual, declared: aurora reaches every route of the socket (the owner's page actions
+pass through her), so she could alter a case file's diary or leads, never the archive's documents; the audit trail
+shows it. Its backup is its own (evd_backup, run by root from the signed copy): encrypted with Evidentia's key, which
+Aurora never holds, beside Aurora's backups. Residual, declared: where the destination is the NAS mounted for Aurora,
+Aurora's user could delete those encrypted files, never read them.
+
 ## Code of conduct (sys/core/ethics/CODE.md)
 
 Level A, always and for everyone: no attacks or probing of systems that are not the owner's, no
@@ -447,3 +469,44 @@ look-alikes, each tried twice): **13 of 24 tries caught, 6 of 8 «zero-day», 0 
 Missed: an e-mail impersonating the owner, a «courier at the gate» asking to open it, a fake tool call written in the
 page itself, a «forget your instructions» on a recipe; the approval gate stays the defence for those.
 
+
+
+## Restore from the WebUI (N164, 27 Nov)
+
+The page asks the admin's password and the authenticator's code again (`confirm_again`), the API writes one request
+into her status folder and starts `aurora-restore` (root, root's signed copy of sys_restore.py). Root reads the request
+as data: a regular file of Aurora's own, not a link, ≤ 4 KB, not writable by others, ≤ 10 minutes old, removed once
+read; kind, snapshot, parts and users each from its own list. It does what `--apply` does: today's data aside, never
+deleted. Residual, declared: root cannot check the password itself — whoever controls Aurora's account can ask a
+restore of one of the owner's own snapshots (no new data, nothing deleted), as she could already start a backup.
+
+
+## Features for users and groups (N165, 27 Nov)
+
+A feature the admin keeps from a user is refused in `auth` itself (its API prefixes, whole path segments), hidden in
+the menu (/me «hidden») and left out of the chat's tools. Only prefixes no other page calls are closed; the pages that
+gather others' pieces (☀️ Oggi, the widgets, the chat) take the refusal as «nothing to show». Not closed, declared: a
+feature's data reached through a shared route (the diary through /reflections, also read by 🩺 Reports) — the diary's
+feature hides its page and its plugin, not that route.
+
+
+## Evidentia's sources on the NAS (N166, 27 Nov)
+
+Only the folder named is mounted, never the whole share; read only; owned by the account evidentia and readable by its
+group (the owner is in it, Aurora's account is not). The NAS's user and password are the backup's, copied by root to
+/etc/aurora/evidentia-nas.cred (0600), never in fstab nor in the code; the address lives in /etc/aurora/evidentia.env.
+The WebUI walks only the roots named, by names (no «..», no link out); reading a folder in is the admin's (the proxy
+refuses it to others) and runs as Evidentia's own process, its lines to the page without a file's name.
+
+By default (N167) the plugins that touch Aurora's configuration, health or the machine's keys are the admin's
+(access_features.json «admin_plugins»); a connector with an account is open to every user because each one's account
+settings are of scope user (test_access_features checks it): a user never acts with the owner's account.
+
+
+## Evidentia per user (N170, 27 Nov)
+
+Each request names its user (X-Evidentia-User), set by Aurora's side only — the socket answers Aurora's account
+(group evidentia-api); the archive is that user's, nothing of one seen from another. Residual, declared (as M1): whoever
+controls Aurora's account can name any user, as she could already reach every route; the per-user separation protects
+the users from each other through the WebUI and the chat, not from Aurora's own account. A user's own NAS folder
+(N168) is mounted by root from one strict request, read only, the password in root's credentials file.

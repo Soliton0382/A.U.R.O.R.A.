@@ -2,6 +2,7 @@
   "name": "backup_files",
   "version": "1.0",
   "kind": "tool",
+  "page": "backup",
   "description": {
     "en": "Backup details, read only: the destination folder's contents (snapshots, blobs, empty or unreadable files), the files recorded by the backup with a filter, and whether specific critical files are recorded and still exist.",
     "it": "Dettagli del backup, sola lettura: contenuto della cartella di destinazione (snapshot, blob, file vuoti o illeggibili), i file registrati dal backup con un filtro, e se file critici precisi sono registrati ed esistono ancora."

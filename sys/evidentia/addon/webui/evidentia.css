@@ -1,0 +1,61 @@
+/* 🕵️ Evidentia's pages (this installation's own, never published): blocks like Aurora's other pages */
+.evd-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: .8rem; margin: .8rem 0; }
+.evd-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: .8rem 1rem; min-width: 0; }
+.evd-card h3 { margin: 0 0 .4rem; font-size: 1.05rem; }
+.evd-card.ok { border-color: rgba(90, 200, 140, .5); }
+.evd-card.bad { border-color: rgba(240, 110, 110, .6); }
+.evd-num { font-size: 1.6rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.evd-rows { display: grid; grid-template-columns: auto 1fr; gap: .15rem .8rem; font-size: .92rem; }
+.evd-rows span:nth-child(odd) { color: var(--muted, #9aa); }
+.evd-rows span:nth-child(even) { font-variant-numeric: tabular-nums; text-align: right; }
+.evd-bar { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; margin: .4rem 0 .8rem; }
+.evd-lead { border-top: 1px solid var(--line); padding: .5rem 0; }
+.evd-lead:first-of-type { border-top: 0; }
+.evd-quote { margin: .2rem 0 .2rem .6rem; font-size: .9rem; }
+.evd-code { font-family: ui-monospace, monospace; font-size: .85rem; overflow-wrap: anywhere; }
+.evd-card details > summary { cursor: pointer; margin-top: .3rem; }
+.evd-card pre { white-space: pre-wrap; font-size: .85rem; margin: .4rem 0 0; }
+/* 🕸️ the web: ties by kind, people by whether they may be named; the theme's own colours */
+.evd-net { display: grid; grid-template-columns: minmax(0, 1fr) 22rem; gap: .8rem; align-items: start; }
+@media (max-width: 900px) { .evd-net { grid-template-columns: 1fr; } }
+.evd-net-svg { width: 100%; height: 64vh; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); touch-action: none; }
+.evd-net-tie { stroke: var(--accent-line, var(--line)); opacity: .55; cursor: pointer; }
+.evd-net-tie.wrote { stroke: var(--accent); }
+.evd-net-tie.copied { stroke-dasharray: 5 4; }
+.evd-net-tie:hover { opacity: 1; }
+.evd-net-node { fill: var(--accent-soft, var(--panel)); stroke: var(--accent); stroke-width: 1.5; cursor: pointer; }
+.evd-net-node.open { fill: var(--accent); }
+.evd-net-node.private { fill: var(--line); stroke: var(--muted); stroke-dasharray: 2 2; cursor: default; }
+.evd-net-label { fill: var(--text); font-size: 11px; pointer-events: none; paint-order: stroke; stroke: var(--surface); stroke-width: 3px; }
+.evd-net-side { max-height: 64vh; overflow: auto; }
+/* the page viewer and the citations */
+.evd-page { width: min(900px, 94vw); max-height: 86vh; border: 1px solid var(--line); border-radius: var(--radius); background: var(--modal-bg, var(--panel-solid)); color: var(--text); padding: .8rem; }
+.evd-page::backdrop { background: rgba(0, 0, 0, .45); }
+.evd-page-text { white-space: pre-wrap; overflow: auto; max-height: 72vh; font-size: .92rem; line-height: 1.45; }
+.evd-page-text mark { background: var(--accent-soft, #ffe28a); color: inherit; padding: 0 .1rem; }
+.evd-cite { font-size: .85rem; margin-right: .4rem; }
+/* 🗂️ the case files as a Finder: folders, cases stacked, the open case */
+.evd-finder { display: grid; grid-template-columns: 14rem 20rem minmax(0, 1fr); border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); min-height: 60vh; }
+@media (max-width: 900px) { .evd-finder { grid-template-columns: 1fr; } }
+.evd-col { border-right: 1px solid var(--line); overflow: auto; max-height: 70vh; padding: .3rem; }
+.evd-col:last-child { border-right: 0; padding: .6rem .9rem; }
+.evd-item { display: flex; align-items: center; gap: .4rem; width: 100%; text-align: left; padding: .35rem .5rem; border-radius: 8px; background: none; border: 0; color: var(--text); cursor: pointer; }
+.evd-item:hover { background: var(--chip-bg, var(--panel)); }
+.evd-item.on { background: var(--accent-soft, var(--panel)); }
+.evd-item small { margin-left: auto; color: var(--muted); }
+/* the picker inside the chat's box: the same Finder, small, above the box */
+.evd-pop { position: absolute; bottom: calc(100% + .4rem); left: 0; z-index: 30; width: min(36rem, 92vw); display: grid; grid-template-columns: 12rem minmax(0, 1fr); background: var(--panel-solid, var(--surface)); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: 0 8px 24px rgba(0, 0, 0, .25); max-height: 50vh; }
+.evd-pop .evd-col { max-height: 50vh; }
+.evd-suggest { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .4rem; }
+.evd-suggest button { font-size: .85rem; }
+/* the people proposed while one types (the web's fields) */
+.evd-ac { position: relative; display: inline-block; }
+.evd-ac-list { position: absolute; top: calc(100% + .2rem); left: 0; z-index: 40; min-width: 100%; width: max-content; max-width: 28rem;
+  background: var(--panel-solid, var(--surface)); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: 0 6px 18px rgba(0, 0, 0, .22); padding: .2rem; }
+/* the web's zoom buttons, over its corner */
+.evd-net-stage { position: relative; }
+.evd-net-zoom { position: absolute; right: .5rem; top: .5rem; display: flex; flex-direction: column; gap: .25rem; }
+.evd-net-zoom button { width: 2.2rem; height: 2.2rem; padding: 0; }
+.evd-net-svg { cursor: grab; }
+.evd-net-svg:active { cursor: grabbing; }
+.evd-translated { border-left: 3px solid var(--accent-line, var(--accent)); padding: .3rem .7rem; margin: .4rem 0; background: var(--chip-bg, transparent); border-radius: 6px; }

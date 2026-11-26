@@ -184,9 +184,12 @@ class Agent(AgentMakers, AgentReport):
         goal names it, the others kept in self.deferred for more_tools."""
         specs, index = [], {}
         self.deferred, self.builtin_names = [], set()
+        from . import sys_users_groups
         for p in self.host.plugins():
             if not p.available or (self.allow is not None and p.name not in self.allow):
                 continue
+            if not sys_users_groups.may_use_now(self.cfg, f"plugin:{p.name}"):
+                continue                                 # 👥 the admin has not opened this plugin to this person
             if (getattr(p, "manifest", None) or {}).get("chat") is False and not (self.allow and p.name in self.allow):
                 continue                                 # an MCP server kept out of the chat: only an agent that chose it
             if not agt_tools.wanted(getattr(p, "manifest", None) or {}, goal):
@@ -524,7 +527,10 @@ class Agent(AgentMakers, AgentReport):
 
         def emit(event, payload):
             self.trail.add(event, payload)
-            sys_log.trace("agent", event, payload, run_id=run_id)      # the path survives in the trace files
+            if not getattr(self, "no_trace", False):    # Evidentia's runs: nothing of the archive on Aurora's disk
+                sys_log.trace("agent", event, payload, run_id=run_id)  # the path survives in the trace files
+            elif (sink := getattr(self, "audit_sink", None)) is not None:   # …but in the case file's own trail
+                sink({"event": event, "payload": payload})
             outer(event, payload)
         # 13 Nov: a home command waited 36 s more than the other runs before its first model call, untimed —
         # each part before it now timed, said in the trace (agent.prepared) and in the log when slow

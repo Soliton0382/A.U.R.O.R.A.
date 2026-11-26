@@ -5,6 +5,7 @@
 // ends at the pause (vad.js), goes to /v1/aurora/interpret (heard in its language, translated into the other's),
 // and is written on both halves and said aloud in the other language. Continuous: the next sentence is recorded
 // while the last one is translated; with earphones also while it is spoken. Nothing is kept on Aurora's side.
+import { chatTabs } from "./chat_tabs.js";
 import { call } from "../api.js";
 import { bus } from "../bus.js";
 import { el, toBase64, useCss } from "../dom.js";
@@ -41,6 +42,7 @@ export default {
         <button class="itp-clear" data-i18n="interpret.clear"></button>
       </div>
       <div class="itp-halves"></div><p class="muted itp-out"></p>`;
+    root.prepend(chatTabs("interpret"));                   // N165 F3: 💬 the chat's tabs
     apply(root);
     this.root = root;
     this.out = root.querySelector(".itp-out");

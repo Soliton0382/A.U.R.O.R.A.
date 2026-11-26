@@ -1,0 +1,4 @@
+# Aurora's desktop window on a computer without Aurora (N169): Qt and its browser, the versions tried on Aurora's own
+# machine (Qt 6.10, 27 Nov). Versions pinned; not hash-pinned (a wheel per system: the installer takes PyPI's).
+PyQt6==6.10.2
+PyQt6-WebEngine==6.10.0

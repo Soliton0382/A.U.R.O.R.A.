@@ -44,7 +44,8 @@ LIB_SCRIPTS = ("sys_nas_mount.py", "sys_backup_retime.py", "sys_cert_perms.py", 
                "sys_root_sync.py", "sys_key_seal.py", "sys_restore.py", "sys_env_sync.py",
                "sys_service_account.py", "sys_nvidia.sh",      # C556: the account's and the GPU's cards, as signed
                "shadow_seed.py",       # C738: what the owner's own account runs, never the repo's writable copy
-               "sys_root_desk.py")     # N152: install/uninstall desk (the app runs from root's copy, C738)
+               "sys_root_desk.py",     # N152: install/uninstall desk (the app runs from root's copy, C738)
+               "sys_root_evidentia.py", "sys_root_evidentia_nas.py")   # Evidentia as an add-on: its service runs from root's copy (27 Nov)
 SHIM_TEXT = f'#!/bin/sh\n# aurora-root (sys/core/script/sys_root.py): root\'s copy, the system\'s Python\nexec /usr/bin/python3 -I {LIB}/sys/core/script/sys_root.py "$@"\n'
 
 
@@ -336,7 +337,8 @@ def sync_lib(snap: dict[str, bytes]) -> int:
             if (rel.startswith("sys/core/aurora/") and rel.endswith(".py"))
             or rel in {f"sys/core/script/{s}" for s in LIB_SCRIPTS}
             or (rel.startswith("sys/core/desk/") and rel.endswith(".py"))             # N152: Aurora Desktop runs
-            or (rel.startswith("sys/core/desk/library/") and rel.endswith(".json"))}  # as the owner, from here
+            or (rel.startswith("sys/core/desk/library/") and rel.endswith(".json"))   # as the owner, from here
+            or (rel.startswith("sys/evidentia/") and rel.endswith((".py", ".json", ".md", ".lock")))}   # Evidentia
     wrong = [rel for rel, b in pick.items() if code.get(rel) != _sha(b)]
     if wrong:
         die("not as signed, root's copy left as it was: " + ", ".join(wrong[:10]))
@@ -368,7 +370,8 @@ def sync_lib(snap: dict[str, bytes]) -> int:
 
 
 ROOT_UNITS = {"aurora-certs.service": "sys_cert_perms.py", "aurora-mount.service": "sys_nas_mount.py",
-              "aurora-retime.service": "sys_backup_retime.py"}
+              "aurora-retime.service": "sys_backup_retime.py", "aurora-restore.service": "sys_restore.py",
+              "aurora-evidentia-nas.service": "sys_root_evidentia_nas.py"}
 EXEC = ("ExecStart=", "ExecStartPre=", "ExecStartPost=", "ExecStop=", "ExecStopPost=", "ExecReload=",
         "ExecCondition=")
 # C592 (audit F9): the directives the generator writes (sys_install_services) and no other. A list of what is forbidden
@@ -477,8 +480,8 @@ def old_sudoers(yes: bool, folder: Path | None = None) -> list[str]:
 
 
 def install(step: str, extra: list[str], yes: bool) -> int:
-    if step not in STEPS and step != "desk":
-        die(f"install: one of {', '.join(STEPS)}, desk")
+    if step not in STEPS and step not in ("desk", "evidentia"):
+        die(f"install: one of {', '.join(STEPS)}, desk, evidentia")
     snap = snapshot()
     d = drift(snap)
     if d["changed"] or d["added"] or d["removed"] or d["unsigned"]:
@@ -490,6 +493,9 @@ def install(step: str, extra: list[str], yes: bool) -> int:
     if step == "desk":                                  # N152: launcher, login unit, menu entry, icon (sys_root_desk)
         import sys_root_desk
         return sys_root_desk.main("install", _write, yes)
+    if step == "evidentia":                             # the add-on: account, root's venv, settings, unit (27 Nov)
+        import sys_root_evidentia
+        return sys_root_evidentia.main("install", _write, REPO, yes, extra)   # --nas smb://… (R22)
     if step == "systemd":
         bad = unit_problems(snap)
         if bad:
@@ -589,8 +595,11 @@ def main(argv: list[str]) -> int:
             die("install: systemd, nft or tunnel")
         return install(args[1], args[2:], yes)
     if action == "uninstall":
+        if args[1:2] == ["evidentia"]:                  # its unit, settings and venv; the archive stays the owner's
+            import sys_root_evidentia
+            return sys_root_evidentia.main("uninstall", _write, REPO, yes)
         if args[1:2] != ["desk"]:
-            die("uninstall: desk")
+            die("uninstall: desk or evidentia")
         import sys_root_desk                            # root's copy: what install desk wrote, and nothing else
         return sys_root_desk.main("uninstall", _write, yes)
     if action == "restore":                             # C538: root's copy of the restore, the system's Python, data only

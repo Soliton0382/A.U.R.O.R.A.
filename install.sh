@@ -17,6 +17,7 @@
 #            --with-video (also the video model under --yes, 34 GB)   --reset-venv   --skip-build
 #            --with-lean (formal proofs: Lean 4 + Mathlib, about 11 GB; asked otherwise, default no)
 #            --with-fem (finite elements: FEniCSx, about 2.1 GB; asked otherwise, default no)
+#            --with-evidentia (the document investigator add-on: its wheels, about 300 MB; asked otherwise, default no)
 #
 # Steps: system check → packages → NVIDIA (driver present, CUDA toolkit 13) or cloud → your answers → venv → cloud
 # key and model checked → hardware profile → .env → models from Hugging Face → llama.cpp for your GPUs (not in the
@@ -26,7 +27,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 cd "$ROOT"
-YES=0; SERVICES=1; OPTIONAL=1; RESET_VENV=0; BUILD=1; VIDEO=0; LEAN=0; FEM=0
+YES=0; SERVICES=1; OPTIONAL=1; RESET_VENV=0; BUILD=1; VIDEO=0; LEAN=0; FEM=0; EVD=0
 for a in "$@"; do
   case "$a" in
     --yes|-y) YES=1 ;;
@@ -35,6 +36,7 @@ for a in "$@"; do
     --with-video) VIDEO=1 ;;
     --with-lean) LEAN=1 ;;
     --with-fem) FEM=1 ;;
+    --with-evidentia) EVD=1 ;;
     --reset-venv) RESET_VENV=1 ;;
     --skip-build) BUILD=0 ;;
     -h|--help) sed -n '4,18p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
@@ -435,6 +437,15 @@ if [ "$LEAN" = 1 ] || [ -d sys/runtime/lean/workspace ] || yesno "$(t 'Dimostraz
   if out="$(bash sys/core/script/sys_proofs_install.sh 2>&1)"; then ok "$(t 'dimostrazioni formali' 'formal proofs'): $(echo "$out" | tail -1)"
   else warn "$(t 'dimostrazioni formali non installate (si aggiungono dopo con' 'formal proofs not installed (add them later with') bash sys/core/script/sys_proofs_install.sh): $(echo "$out" | tail -1)"; fi
 else ok "$(t 'dimostrazioni formali: no (si aggiungono dopo con' 'formal proofs: no (add them later with') bash sys/core/script/sys_proofs_install.sh)"; fi
+# Evidentia, the document investigator (an add-on, 27 Nov): its service's wheels downloaded here with every SHA-256
+# required (sys/evidentia/config/requirements-root.lock), then root builds its venv offline from them and installs it
+if [ "$EVD" = 1 ] || [ -f /etc/aurora/evidentia.env ] || yesno "$(t 'Evidentia, l investigatore dei documenti (+300 MB, rete)?' 'Evidentia, the document investigator (+300 MB, network)?')" n EVD; then
+  if .venv/bin/python -I -m pip download -q --only-binary=:all: --require-hashes -d sys/runtime/evidentia-wheels \
+       --index-url https://pypi.org/simple --extra-index-url https://download.pytorch.org/whl/cpu \
+       -r sys/evidentia/config/requirements-root.lock >/dev/null 2>&1; then
+    ok "$(t 'Evidentia: pacchetti pronti; per installarla: sudo aurora-root install evidentia (con le fonti sul NAS: --nas smb://indirizzo/condivisione/cartella)' 'Evidentia: wheels ready; to install it: sudo aurora-root install evidentia (with its sources on the NAS: --nas smb://address/share/folder)')"
+  else warn "$(t 'Evidentia: pacchetti non scaricati (si riprova rilanciando install.sh)' 'Evidentia: wheels not downloaded (run install.sh again)')"; fi
+fi
 # finite elements (N155): FEniCSx in sys/runtime/fenicsx, pinned (micromamba by SHA-256, packages by MD5 from the lock);
 # optional, about 2.1 GB; already there (an update) it is only checked
 if [ "$FEM" = 1 ] || [ -x sys/runtime/fenicsx/env/bin/python ] || yesno "$(t 'Elementi finiti con FEniCSx (+2,1 GB, rete)?' 'Finite elements with FEniCSx (+2.1 GB, network)?')" n FEM; then

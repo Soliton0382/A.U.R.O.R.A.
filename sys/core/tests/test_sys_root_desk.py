@@ -66,7 +66,8 @@ def test_the_login_unit_puts_accessibility_back():
 
 def test_the_tray_at_login_and_the_launcher_takes_only_tray_or_web():
     assert "Exec=/usr/local/bin/aurora-desk --tray" in D.AUTOSTART and "NoDisplay=true" in D.AUTOSTART
-    assert 'case "$*" in "" | --tray | --web) ;;' in D.LAUNCHER and "aurora_desk.py $*" in D.LAUNCHER
+    assert 'case "$*" in "" | --tray | --web | --web-setup) ;;' in D.LAUNCHER and "aurora_desk.py $*" in D.LAUNCHER
+    assert 'if [ "$*" = "--web" ] || [ "$*" = "--web-setup" ]; then' in D.LAUNCHER   # the address form again (N169)
 
 
 def test_the_web_window_has_its_own_unit_with_network_and_only_aurora_s_address():
@@ -74,7 +75,7 @@ def test_the_web_window_has_its_own_unit_with_network_and_only_aurora_s_address(
     web = t[t.index('if [ "$*" = "--web" ]'):t.index("\nfi\n")]
     assert '--unit="aurora-web-$id"' in web and "LimitCORE=0" in web and "/usr/bin/env -i " in web
     assert "RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK" in web
-    assert "DESK_WEB_URL=http://127.0.0.1:9700/" in web and web.rstrip().endswith("desk/app/web.py")
+    assert "DESK_WEB_URL=http://127.0.0.1:9700/ DESK_WEB_SETUP=\"$setup\"" in web and web.rstrip().endswith("desk/app/web.py")
     assert "aurora_desk.py" not in web                       # the learning app keeps AF_UNIX only
     assert "__EGL_VENDOR_LIBRARY_FILENAMES=/usr/share/glvnd/egl_vendor.d/50_mesa.json" in web     # never the RTX cards
     assert "__GLX_VENDOR_LIBRARY_NAME=mesa" in web and "CUDA_VISIBLE_DEVICES= " in web

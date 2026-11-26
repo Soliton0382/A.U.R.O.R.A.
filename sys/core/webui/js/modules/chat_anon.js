@@ -5,6 +5,7 @@
 // Aurora, text only; questions go with "anonymous": true (nothing remembered short or long, no trace, she makes no
 // file), files may be attached; the conversation sealed on the server only to be shown again (sys_anon), emptied 24
 // hours after its first message or by «Svuota ora».
+import { chatTabs } from "./chat_tabs.js";
 import { call } from "../api.js";
 import { clock, el, scrollEnd, toBase64, useCss } from "../dom.js";
 import { apply, t } from "../i18n.js";
@@ -53,6 +54,8 @@ export default {
           <button type="submit" class="send" data-i18n="chat.send"></button>
         </form>
       </div>`;
+    root.classList.add("has-tabs");                        // N165 F3: 💬 its tabs over the conversation
+    root.prepend(chatTabs("anonchat"));
     apply(root);
     this.top = root.querySelector(".anon-top");
     this.messages = root.querySelector(".messages");

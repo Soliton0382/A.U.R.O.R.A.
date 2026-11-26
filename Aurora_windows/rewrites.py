@@ -163,6 +163,11 @@ SERVICES = [
      f'''    {P}
     r = sys_platform.current().service_action("start", ["aurora-backup.service"], wait=False)''',
      "api/backup: a backup now"),
+    ("sys/core/aurora/api/backup.py",
+     '''    r = subprocess.run(["systemctl", "start", "--no-block", "aurora-restore.service"], capture_output=True, text=True)''',
+     f'''    {P}
+    r = sys_platform.current().service_action("start", ["aurora-restore.service"], wait=False)''',
+     "api/backup: a restore asked from the page (N164)"),
 
     ("sys/core/aurora/api/updates.py",
      '''    try:

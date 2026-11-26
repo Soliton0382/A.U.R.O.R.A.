@@ -195,3 +195,5 @@ def test_every_absolute_path_by_default_is_absolute_on_this_port_s_system():
     bad = [(x["key"], x["recommended"]) for x in schema["settings"] if x["type"] == "path_abs"
            and not (isabs(x["recommended"]) and (port != "Aurora_windows" or ntpath.splitdrive(x["recommended"])[0]))]
     assert not bad, f"factory paths not absolute on {port}: {bad}"
+# Evidentia's installer (27 Nov), run by Linux's root: its archive folder made without inherited ACLs (phase 3)
+PORT_SCRIPTS |= {("sys_root_evidentia.py", "setfacl")}

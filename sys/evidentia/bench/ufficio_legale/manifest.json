@@ -1,0 +1,570 @@
+[
+ {
+  "matter": "A",
+  "stem": "A01_contratto_fornitura_2025-114",
+  "form": "pdf",
+  "pages": 3,
+  "file": "fonti/A_fornitura_Ferri_Lumen/A01_contratto_fornitura_2025-114.pdf",
+  "sha256": "0a2ca140fa8431bfe91b64bc1480f064d3e13c450798d8af47242dcc8c49b31f"
+ },
+ {
+  "matter": "A",
+  "stem": "A02_allegato_A_scheda_tecnica",
+  "form": "pdf",
+  "pages": 2,
+  "file": "fonti/A_fornitura_Ferri_Lumen/A02_allegato_A_scheda_tecnica.pdf",
+  "sha256": "8c5a8eff6497489443e2991ebe2a23e3cd2fed35cc13bafa6fd433dc5ec250b4"
+ },
+ {
+  "matter": "A",
+  "stem": "A03_bonifico_acconto_30",
+  "form": "pdf",
+  "pages": 1,
+  "file": "fonti/A_fornitura_Ferri_Lumen/A03_bonifico_acconto_30.pdf",
+  "sha256": "e02286580a94ff9dfd504f670134aa77a58fcce2f6ad96e32e961cc77178c27c"
+ },
+ {
+  "matter": "A",
+  "stem": "A04_email_lumen_conferma_ordine",
+  "form": "pdf",
+  "pages": 1,
+  "file": "fonti/A_fornitura_Ferri_Lumen/A04_email_lumen_conferma_ordine.pdf",
+  "sha256": "57fa0034eb8688a2ed3449a8ea0b4dafb6343e4e85ca9fb1619f838f4f7c7372"
+ },
+ {
+  "matter": "A",
+  "stem": "A05_email_lumen_ritardo_componenti",
+  "form": "pdf",
+  "pages": 1,
+  "file": "fonti/A_fornitura_Ferri_Lumen/A05_email_lumen_ritardo_componenti.pdf",
+  "sha256": "70d32adacbb577edd98b519368e142f974fe5fbaccd664cfecb509847758e686"
+ },
+ {
+  "matter": "A",
+  "stem": "A06_pec_diffida_ad_adempiere",
+  "form": "pdf",
+  "pages": 1,
+  "file": "fonti/A_fornitura_Ferri_Lumen/A06_pec_diffida_ad_adempiere.pdf",
+  "sha256": "d6db79c5f60db05c0d584208024af46a3b3d6c0d3a41e8a1e09cf18a5505f93c"
+ },
+ {
+  "matter": "A",
+  "stem": "A07_pec_risposta_lumen_forza_maggiore",
+  "form": "pdf",
+  "pages": 1,
+  "file": "fonti/A_fornitura_Ferri_Lumen/A07_pec_risposta_lumen_forza_maggiore.pdf",
+  "sha256": "737e61674612f0ff2f3b0c29254222705ebba074946b99012fc1d13bd7a35d97"
+ },
+ {
+  "matter": "A",
+  "stem": "A08_DDT_3318_consegna",
+  "form": "scan",
+  "pages": 1,
+  "file": "fonti/A_fornitura_Ferri_Lumen/A08_DDT_3318_consegna.pdf",
+  "sha256": "a2660730c10dd1a4f3744d658b45bf67c9c60560dbe6d1c84c4534b30c8b22ff"
+ },
+ {
+  "matter": "A",
+  "stem": "A09_verbale_installazione",
+  "form": "pdf",
+  "pages": 1,
+  "file": "fonti/A_fornitura_Ferri_Lumen/A09_verbale_installazione.pdf",
+  "sha256": "3cf3f3f77d1b15a096e7780fe530b56fb3add41513fbac4f1f1097dccb2f11a2"
+ },
+ {
+  "matter": "A",
+  "stem": "A10_verbale_collaudo_negativo",
+  "form": "pdf",
+  "pages": 2,
+  "file": "fonti/A_fornitura_Ferri_Lumen/A10_verbale_collaudo_negativo.pdf",
+  "sha256": "8041754eb85783ff8b58ed08180820a5e584031e59296c2496f9ff61b5cd772c"
+ },
+ {
+  "matter": "A",
+  "stem": "A11_fattura_77-2025",
+  "form": "pdf",
+  "pages": 1,
+  "file": "fonti/A_fornitura_Ferri_Lumen/A11_fattura_77-2025.pdf",
+  "sha256": "f7a76329646487bc272fc0443461b93810c540ca76827cf69b830bfd4d79255d"
+ },
+ {
+  "matter": "A",
+  "stem": "A12_nota_debito_lumen",
+  "form": "pdf",
+  "pages": 1,
+  "file": "fonti/A_fornitura_Ferri_Lumen/A12_nota_debito_lumen.pdf",
+  "sha256": "dc0c6d309132938812ab480d1c37f3ac1a81a384079393cdc2101f0e31a1e5ad"
+ },
+ {
+  "matter": "A",
+  "stem": "A13_email_interna_ferri_produzione",
+  "form": "pdf",
+  "pages": 1,
+  "file": "fonti/A_fornitura_Ferri_Lumen/A13_email_interna_ferri_produzione.pdf",
+  "sha256": "25f57a1370e964a2edf92671710e6e336a7dba2e88dab62c8da0da7cbe243c01"
+ },
+ {
+  "matter": "A",
+  "stem": "A14_fatture_terzista_gardesane",
+  "form": "pdf",
+  "pages": 1,
+  "file": "fonti/A_fornitura_Ferri_Lumen/A14_fatture_terzista_gardesane.pdf",
+  "sha256": "3fb3ed9353c53154b75bffade2dbd0ad8897326ec71b6679baa25492b18869d2"
+ },
+ {
+  "matter": "A",
+  "stem": "A15_verbale_riunione_5_settembre",
+  "form": "pdf",
+  "pages": 1,
+  "file": "fonti/A_fornitura_Ferri_Lumen/A15_verbale_riunione_5_settembre.pdf",
+  "sha256": "c05b4c5c43cd9a870a353650ec50213d836af2d383c7da2263fb1aff16babb99"
+ },
+ {
+  "matter": "A",
+  "stem": "A16_pec_rifiuto_proposta",
+  "form": "pdf",
+  "pages": 1,
+  "file": "fonti/A_fornitura_Ferri_Lumen/A16_pec_rifiuto_proposta.pdf",
+  "sha256": "9c2aa5cfe7704dc1aa1e2b47ee2836a53e5c050fc236a82809655341efee6634"
+ },
+ {
+  "matter": "A",
+  "stem": "A17_decreto_ingiuntivo_1543-2025",
+  "form": "scan",
+  "pages": 1,
+  "file": "fonti/A_fornitura_Ferri_Lumen/A17_decreto_ingiuntivo_1543-2025.pdf",
+  "sha256": "89b0f33da1797ceebeb9f71969f7cfb215c39b57fcb5f6a3ee1b5a158a3fc10f"
+ },
+ {
+  "matter": "A",
+  "stem": "A18_relata_notifica_decreto",
+  "form": "pdf",
+  "pages": 1,
+  "file": "fonti/A_fornitura_Ferri_Lumen/A18_relata_notifica_decreto.pdf",
+  "sha256": "7100ea7113e704c102d6bafac55e0cb722835805d9e574619727650174375ad3"
+ },
+ {
+  "matter": "A",
+  "stem": "A19_nota_studio_promemoria",
+  "form": "pdf",
+  "pages": 1,
+  "file": "fonti/A_fornitura_Ferri_Lumen/A19_nota_studio_promemoria.pdf",
+  "sha256": "77a3bec30c1d64d7b360d87153655390684ba0ba48181b9fd95b5d55ac9c66e5"
+ },
+ {
+  "matter": "A",
+  "stem": "A20_email_bresciani_annullamento",
+  "form": "png",
+  "pages": 1,
+  "file": "fonti/A_fornitura_Ferri_Lumen/A20_email_bresciani_annullamento.png",
+  "sha256": "2205582919ad16d145d78aaf75770c0a57563278f15dd32432bd2b2b2ccca59b"
+ },
+ {
+  "matter": "A",
+  "stem": "A21_comunicato_sciopero_autotrasporto",
+  "form": "pdf",
+  "pages": 1,
+  "file": "fonti/A_fornitura_Ferri_Lumen/A21_comunicato_sciopero_autotrasporto.pdf",
+  "sha256": "73b8d797fd07740ca5111be241c4de148fc92e03514c2d9de54ce207a4afc0f7"
+ },
+ {
+  "matter": "A",
+  "stem": "A22_email_galli_data_consegna",
+  "form": "eml",
+  "pages": 1,
+  "file": "fonti/A_fornitura_Ferri_Lumen/A22_email_galli_data_consegna.eml",
+  "sha256": "8b34daf44d0cf47967a03229db7ca872b7dbd81266d8c3f5c340f750445bc6ee"
+ },
+ {
+  "matter": "A",
+  "stem": "A23_parere_preliminare_bozza",
+  "form": "docx",
+  "pages": 1,
+  "file": "fonti/A_fornitura_Ferri_Lumen/A23_parere_preliminare_bozza.docx",
+  "sha256": "7e8781efe904b4a18366839409fd0f723e884907b7e7be724777c355702c2e6f"
+ },
+ {
+  "matter": "B",
+  "stem": "B01_contratto_assunzione_Rinaldi",
+  "form": "pdf",
+  "pages": 2,
+  "file": "fonti/B_licenziamento_Rinaldi/B01_contratto_assunzione_Rinaldi.pdf",
+  "sha256": "ba39ce40c8cbd23bade27f81995143dd6c0ccaa6b4a04af3c9f5d9784609e845"
+ },
+ {
+  "matter": "B",
+  "stem": "B02_codice_disciplinare",
+  "form": "pdf",
+  "pages": 1,
+  "file": "fonti/B_licenziamento_Rinaldi/B02_codice_disciplinare.pdf",
+  "sha256": "179d3a484e612957d6477dd08713f1ad97f2745204c488bb3c9aebd8e3855ea4"
+ },
+ {
+  "matter": "B",
+  "stem": "B03_comunicazione_cambio_turno",
+  "form": "pdf",
+  "pages": 1,
+  "file": "fonti/B_licenziamento_Rinaldi/B03_comunicazione_cambio_turno.pdf",
+  "sha256": "07c3dcb7666e2232954a20b17b7ddd1ef3afa5a170b584c27b496e87397e43ca"
+ },
+ {
+  "matter": "B",
+  "stem": "B04_cartellino_presenze_marzo",
+  "form": "pdf",
+  "pages": 2,
+  "file": "fonti/B_licenziamento_Rinaldi/B04_cartellino_presenze_marzo.pdf",
+  "sha256": "4ea790b98ec6c1fc5d317cb4872d59da40cc5e4621ad3a3a0e0efc2e933864e8"
+ },
+ {
+  "matter": "B",
+  "stem": "B05_lettera_contestazione_disciplinare",
+  "form": "pdf",
+  "pages": 1,
+  "file": "fonti/B_licenziamento_Rinaldi/B05_lettera_contestazione_disciplinare.pdf",
+  "sha256": "d517c80d2e7e9f61936958416eb697c563e5584a0d6d56be7be1def89d6f98fb"
+ },
+ {
+  "matter": "B",
+  "stem": "B06_giustificazioni_Rinaldi",
+  "form": "pdf",
+  "pages": 1,
+  "file": "fonti/B_licenziamento_Rinaldi/B06_giustificazioni_Rinaldi.pdf",
+  "sha256": "f532cc2647777838bbef2afba33d5936ebf7446cb7749e7790291ea49f95255e"
+ },
+ {
+  "matter": "B",
+  "stem": "B07_dichiarazione_collega_Neri",
+  "form": "pdf",
+  "pages": 1,
+  "file": "fonti/B_licenziamento_Rinaldi/B07_dichiarazione_collega_Neri.pdf",
+  "sha256": "86bf06e5211807361208fef9e3dc94fcad80137498afe984e772b5a01649e11d"
+ },
+ {
+  "matter": "B",
+  "stem": "B08_email_HR_falsificazione",
+  "form": "pdf",
+  "pages": 1,
+  "file": "fonti/B_licenziamento_Rinaldi/B08_email_HR_falsificazione.pdf",
+  "sha256": "ed2e98fb4ac39d79f0f36d5f4dd9d485c7eb86e26123ebd60dbaf8d4aff1e48a"
+ },
+ {
+  "matter": "B",
+  "stem": "B09_lettera_licenziamento",
+  "form": "scan",
+  "pages": 1,
+  "file": "fonti/B_licenziamento_Rinaldi/B09_lettera_licenziamento.pdf",
+  "sha256": "c4d5038a7541bd7a8113dfde3f9a6d3a8da8f3698ceebec01c873fbde72b947d"
+ },
+ {
+  "matter": "B",
+  "stem": "B10_ricevuta_raccomandata_licenziamento",
+  "form": "pdf",
+  "pages": 1,
+  "file": "fonti/B_licenziamento_Rinaldi/B10_ricevuta_raccomandata_licenziamento.pdf",
+  "sha256": "4e384ff50bce1632fd44e590a8b89de4b22d9d3d81e6670d1592f9b65381cb4b"
+ },
+ {
+  "matter": "B",
+  "stem": "B11_busta_paga_marzo",
+  "form": "pdf",
+  "pages": 1,
+  "file": "fonti/B_licenziamento_Rinaldi/B11_busta_paga_marzo.pdf",
+  "sha256": "e40e3f96ea250f94d15c7bbd4e7eb825f1a4cf6b2a859ac283b51e7feb2c4838"
+ },
+ {
+  "matter": "B",
+  "stem": "B12_verbale_polizia_locale_12_marzo",
+  "form": "png",
+  "pages": 1,
+  "file": "fonti/B_licenziamento_Rinaldi/B12_verbale_polizia_locale_12_marzo.png",
+  "sha256": "81473ad149972b3dd27e006be4143db747f32644bac4aa53e47dea3915a616df"
+ },
+ {
+  "matter": "B",
+  "stem": "B13_impugnazione_stragiudiziale",
+  "form": "pdf",
+  "pages": 1,
+  "file": "fonti/B_licenziamento_Rinaldi/B13_impugnazione_stragiudiziale.pdf",
+  "sha256": "3b965848d15e76dc8563e17cceb9138f591b4c25133f9d01537ddcd96049c0a7"
+ },
+ {
+  "matter": "B",
+  "stem": "B14_nota_avv_Fontana_termini",
+  "form": "pdf",
+  "pages": 1,
+  "file": "fonti/B_licenziamento_Rinaldi/B14_nota_avv_Fontana_termini.pdf",
+  "sha256": "1a7b2c7dfa3026b63e8a7c42e0285fdc88ead13ab3220a9c2cb19246acf05540"
+ },
+ {
+  "matter": "B",
+  "stem": "B15_email_Lodi_versione",
+  "form": "eml",
+  "pages": 1,
+  "file": "fonti/B_licenziamento_Rinaldi/B15_email_Lodi_versione.eml",
+  "sha256": "652ad8146d27ed75d578f65853b3ed821d2e585979c8b3d67498bdfb49ebe243"
+ },
+ {
+  "matter": "C",
+  "stem": "C01_regolamento_condominio",
+  "form": "pdf",
+  "pages": 1,
+  "file": "fonti/C_condominio_Tigli18/C01_regolamento_condominio.pdf",
+  "sha256": "3f3d415161f48ffdc96f997d628cd4475653189698dcd390ad83807b6d9a0433"
+ },
+ {
+  "matter": "C",
+  "stem": "C02_tabella_millesimi",
+  "form": "pdf",
+  "pages": 1,
+  "file": "fonti/C_condominio_Tigli18/C02_tabella_millesimi.pdf",
+  "sha256": "731b10c4e308caf0c62112a270c14e036ddc0978eadfc7e154abbc620984bc0f"
+ },
+ {
+  "matter": "C",
+  "stem": "C03_segnalazione_Bassi_infiltrazioni",
+  "form": "pdf",
+  "pages": 1,
+  "file": "fonti/C_condominio_Tigli18/C03_segnalazione_Bassi_infiltrazioni.pdf",
+  "sha256": "6d55e55246b1655516080718a796a98621e9c40092ba5f212cf5d0bb1af3ba7c"
+ },
+ {
+  "matter": "C",
+  "stem": "C04_perizia_Moretti",
+  "form": "pdf",
+  "pages": 2,
+  "file": "fonti/C_condominio_Tigli18/C04_perizia_Moretti.pdf",
+  "sha256": "67334a40f80096ee2dba23975a1829a88172c9c14b0c82886bbdde519663a011"
+ },
+ {
+  "matter": "C",
+  "stem": "C05_preventivo_Impermeabilizzazioni_Adige",
+  "form": "pdf",
+  "pages": 1,
+  "file": "fonti/C_condominio_Tigli18/C05_preventivo_Impermeabilizzazioni_Adige.pdf",
+  "sha256": "629cef77a693ed0a1a70d2f0dc5fcc4a81718563b309c738879b94904cf109e8"
+ },
+ {
+  "matter": "C",
+  "stem": "C06_convocazione_assemblea",
+  "form": "pdf",
+  "pages": 1,
+  "file": "fonti/C_condominio_Tigli18/C06_convocazione_assemblea.pdf",
+  "sha256": "1302f05c5146d71310283f78dc5dfded33432e35d70faff4000598855f7bef51"
+ },
+ {
+  "matter": "C",
+  "stem": "C07_verbale_assemblea_12_maggio",
+  "form": "pdf",
+  "pages": 2,
+  "file": "fonti/C_condominio_Tigli18/C07_verbale_assemblea_12_maggio.pdf",
+  "sha256": "618de08241e38f00673002f651b9c9328dd6a0fe4359571d627f8804c9eafb04"
+ },
+ {
+  "matter": "C",
+  "stem": "C08_foglio_presenze_assemblea",
+  "form": "scan",
+  "pages": 1,
+  "file": "fonti/C_condominio_Tigli18/C08_foglio_presenze_assemblea.pdf",
+  "sha256": "f3a31382d72fd2bb77e94259a7bdea6403189a30b75dbddd8502af55f22e3531"
+ },
+ {
+  "matter": "C",
+  "stem": "C09_invio_verbale_assenti",
+  "form": "pdf",
+  "pages": 1,
+  "file": "fonti/C_condominio_Tigli18/C09_invio_verbale_assenti.pdf",
+  "sha256": "12f15332225424a00586808f78372f72e7a651b4505553058c8a6d18a2c19f7a"
+ },
+ {
+  "matter": "C",
+  "stem": "C10_lettera_avv_Bassi_contestazione",
+  "form": "pdf",
+  "pages": 1,
+  "file": "fonti/C_condominio_Tigli18/C10_lettera_avv_Bassi_contestazione.pdf",
+  "sha256": "853b2adb83038e33c74c369cc6c6debc880e0538f91406cf712a4ce828f9dd78"
+ },
+ {
+  "matter": "C",
+  "stem": "C11_email_amministratore_risposta",
+  "form": "pdf",
+  "pages": 1,
+  "file": "fonti/C_condominio_Tigli18/C11_email_amministratore_risposta.pdf",
+  "sha256": "4508c9849644921f0d9f4d479aca163d48b74b044ce9356ab9f3f3b1e939bc5f"
+ },
+ {
+  "matter": "C",
+  "stem": "C12_preventivo_Bassi_ripristino",
+  "form": "png",
+  "pages": 1,
+  "file": "fonti/C_condominio_Tigli18/C12_preventivo_Bassi_ripristino.png",
+  "sha256": "8fc9948ce86035fe5ec08ae15cf2c11aa60ab593b4c163340ce1d701b9dabc64"
+ },
+ {
+  "matter": "C",
+  "stem": "C13_mediazione_istanza",
+  "form": "docx",
+  "pages": 1,
+  "file": "fonti/C_condominio_Tigli18/C13_mediazione_istanza.docx",
+  "sha256": "66295307f7740e991431436f51c8118d756e966c65336f603eaeaf6909eb7d30"
+ },
+ {
+  "matter": "A",
+  "stem": "A30_contratto_manutenzione_2024-031",
+  "form": "pdf",
+  "pages": 1,
+  "file": "fonti/A_fornitura_Ferri_Lumen/A30_contratto_manutenzione_2024-031.pdf",
+  "sha256": "bea7625697fb81e5cdbdcc57b083e4f1882f3284338938a0b82aff0a2f55f775"
+ },
+ {
+  "matter": "A",
+  "stem": "A31_ordine_acquisto_vernici_2025",
+  "form": "pdf",
+  "pages": 1,
+  "file": "fonti/A_fornitura_Ferri_Lumen/A31_ordine_acquisto_vernici_2025.pdf",
+  "sha256": "881b17ea7c2d1d869b6764aca0f33a19c133faa703b5ae2802637854a602b5d0"
+ },
+ {
+  "matter": "A",
+  "stem": "A32_DDT_1190_vernici",
+  "form": "pdf",
+  "pages": 1,
+  "file": "fonti/A_fornitura_Ferri_Lumen/A32_DDT_1190_vernici.pdf",
+  "sha256": "57e522f57e952165823d8daf0b8c9816652cb695e0cfbf0c5530a1649baf17a9"
+ },
+ {
+  "matter": "A",
+  "stem": "A33_fattura_Tecnoservice_2025-15",
+  "form": "pdf",
+  "pages": 1,
+  "file": "fonti/A_fornitura_Ferri_Lumen/A33_fattura_Tecnoservice_2025-15.pdf",
+  "sha256": "ed1b175662928847ea25a302189efebe0d54318cf30b0f79b36c71bd04a3f6e0"
+ },
+ {
+  "matter": "A",
+  "stem": "A34_email_offerta_concorrente",
+  "form": "pdf",
+  "pages": 1,
+  "file": "fonti/A_fornitura_Ferri_Lumen/A34_email_offerta_concorrente.pdf",
+  "sha256": "8f3e6560d33ad3c22a0f40e99d383fe3daffbaa9e26f16fbc9a4410f84790c6b"
+ },
+ {
+  "matter": "A",
+  "stem": "A35_verbale_cda_ferri_marzo",
+  "form": "pdf",
+  "pages": 1,
+  "file": "fonti/A_fornitura_Ferri_Lumen/A35_verbale_cda_ferri_marzo.pdf",
+  "sha256": "01247bfdd2059278c132f808b389e53a0aa913b09181a211bb39164a3cf81865"
+ },
+ {
+  "matter": "A",
+  "stem": "A36_decreto_ingiuntivo_altro_2024",
+  "form": "pdf",
+  "pages": 1,
+  "file": "fonti/A_fornitura_Ferri_Lumen/A36_decreto_ingiuntivo_altro_2024.pdf",
+  "sha256": "4bb92ece88ea32f64a1e98bf055b92a7d734fac9b9ba0454c37f4721158ea385"
+ },
+ {
+  "matter": "A",
+  "stem": "A37_listino_ricambi_Lumen",
+  "form": "pdf",
+  "pages": 1,
+  "file": "fonti/A_fornitura_Ferri_Lumen/A37_listino_ricambi_Lumen.pdf",
+  "sha256": "aa076087f3374c96b22b4bd79d096554e79a5ff14bf7bc9ca533bbb926fb960c"
+ },
+ {
+  "matter": "B",
+  "stem": "B30_contestazione_altro_dipendente",
+  "form": "pdf",
+  "pages": 1,
+  "file": "fonti/B_licenziamento_Rinaldi/B30_contestazione_altro_dipendente.pdf",
+  "sha256": "d8e6785643cbd9d8c7450891a82b61217b94ea934f5add2911ce5b50c0b6de3a"
+ },
+ {
+  "matter": "B",
+  "stem": "B31_rimprovero_scritto_Russo",
+  "form": "pdf",
+  "pages": 1,
+  "file": "fonti/B_licenziamento_Rinaldi/B31_rimprovero_scritto_Russo.pdf",
+  "sha256": "8be933441822ec5800882f54a8031e8d77c79bc54efbdb839ce98de6042215c5"
+ },
+ {
+  "matter": "B",
+  "stem": "B32_comunicazione_servizio_13-2025",
+  "form": "pdf",
+  "pages": 1,
+  "file": "fonti/B_licenziamento_Rinaldi/B32_comunicazione_servizio_13-2025.pdf",
+  "sha256": "b15fc09f3e9284ab7c1101c3c4a775822509343f76ab008afd340987a6ba1fc0"
+ },
+ {
+  "matter": "B",
+  "stem": "B33_cartellino_Neri_marzo",
+  "form": "pdf",
+  "pages": 1,
+  "file": "fonti/B_licenziamento_Rinaldi/B33_cartellino_Neri_marzo.pdf",
+  "sha256": "2bd8fc53decd1e1202a4cf10885ebccce9a7198890f4c650a5370b953e208d9c"
+ },
+ {
+  "matter": "B",
+  "stem": "B34_accordo_aziendale_turni_2023",
+  "form": "pdf",
+  "pages": 1,
+  "file": "fonti/B_licenziamento_Rinaldi/B34_accordo_aziendale_turni_2023.pdf",
+  "sha256": "4b89498f1f804834e592c3e05fc8245602a5daff9938abefba076a354001f903"
+ },
+ {
+  "matter": "B",
+  "stem": "B35_licenziamento_altro_2023",
+  "form": "pdf",
+  "pages": 1,
+  "file": "fonti/B_licenziamento_Rinaldi/B35_licenziamento_altro_2023.pdf",
+  "sha256": "d0d7b0059e76c0379a769ae0eaeaf87a8904951f97529dc86300b13ccbef64bc"
+ },
+ {
+  "matter": "B",
+  "stem": "B36_cedolino_febbraio_Rinaldi",
+  "form": "pdf",
+  "pages": 1,
+  "file": "fonti/B_licenziamento_Rinaldi/B36_cedolino_febbraio_Rinaldi.pdf",
+  "sha256": "65de2674864b8785ff0e129eb3c9d35b15578f9b9010c4f1e659da322f5f3733"
+ },
+ {
+  "matter": "C",
+  "stem": "C30_bilancio_consuntivo_2024",
+  "form": "pdf",
+  "pages": 1,
+  "file": "fonti/C_condominio_Tigli18/C30_bilancio_consuntivo_2024.pdf",
+  "sha256": "3e5ac914e569578c2d951800e3ccf97fc87a2f9f2b3e9653becfe1bf14e98923"
+ },
+ {
+  "matter": "C",
+  "stem": "C31_verbale_assemblea_ordinaria_2025",
+  "form": "pdf",
+  "pages": 1,
+  "file": "fonti/C_condominio_Tigli18/C31_verbale_assemblea_ordinaria_2025.pdf",
+  "sha256": "84466aeda178ef18643da6e5311487a2e1e1e73af8dc432212dfcf58fc42ae2d"
+ },
+ {
+  "matter": "C",
+  "stem": "C32_lettera_Ferri_parcheggio",
+  "form": "pdf",
+  "pages": 1,
+  "file": "fonti/C_condominio_Tigli18/C32_lettera_Ferri_parcheggio.pdf",
+  "sha256": "1944a5aeb3b413bb54204772258a86ab8ba1ac6105634bf8ae6099eaad4e2141"
+ },
+ {
+  "matter": "C",
+  "stem": "C33_preventivo_concorrente_lastrico",
+  "form": "pdf",
+  "pages": 1,
+  "file": "fonti/C_condominio_Tigli18/C33_preventivo_concorrente_lastrico.pdf",
+  "sha256": "5ce9e9cd2cfbf2986b6647986fec42aa92aa3881511c71fd4a5d3ca1de6b447d"
+ },
+ {
+  "matter": "C",
+  "stem": "C34_contratto_appalto_lavori",
+  "form": "pdf",
+  "pages": 1,
+  "file": "fonti/C_condominio_Tigli18/C34_contratto_appalto_lavori.pdf",
+  "sha256": "82f590fe65926c3fc7d2d0f3bb59306b238ec24130d38140ff08bc6335cec9ec"
+ }
+]

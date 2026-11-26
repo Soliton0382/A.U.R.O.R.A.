@@ -67,6 +67,15 @@ body input[type=checkbox], body input[type=radio] { width: auto; flex: none; pad
 body.drawer-open .drawer { transform: none; }
 .scrim { position: fixed; inset: 0; z-index: 3; background: rgba(0, 0, 0, .45); opacity: 0; pointer-events: none; transition: opacity .22s; }
 body.drawer-open .scrim { opacity: 1; pointer-events: auto; }
+/* 📌 the menu kept open beside the page on a wide screen (owner, 27 Nov: «far scegliere all'utente se tenerlo aperto
+   fisso oppure se chiuderlo in automatico»); a phone keeps the sliding drawer */
+@media (min-width: 900px) {
+  body.drawer-pinned .drawer { transform: none; }
+  body.drawer-pinned .scrim { display: none; }
+  body.drawer-pinned #views, body.drawer-pinned header { margin-left: var(--drawer); }
+  body.drawer-pinned #menu { visibility: hidden; }
+}
+#nav-pin[aria-pressed="true"] { filter: none; opacity: 1; } #nav-pin[aria-pressed="false"] { opacity: .55; }
 #nav { display: flex; flex-direction: column; gap: .25rem; flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
   scrollbar-width: thin; scrollbar-color: rgba(122, 162, 255, .35) transparent; }   /* many pages or a big zoom: the list scrolls */
 #nav button { flex-shrink: 0; display: flex; align-items: center; gap: .7rem; text-align: left; background: none; border-color: transparent; padding: .6rem .7rem; }
@@ -84,7 +93,8 @@ body.drawer-open .scrim { opacity: 1; pointer-events: auto; }
 .nav-found-row small { font-size: .78rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .nav-found-none { padding: .5rem .7rem; margin: 0; }
 .drawer-foot { display: flex; gap: .5rem; align-items: center; justify-content: space-between; }
-.drawer-foot .logout { font-size: .85rem; }
+.drawer-foot .logout { font-size: .85rem; white-space: nowrap; flex: 0 0 auto; }
+.drawer-foot select { min-width: 0; flex: 1 1 auto; }   /* N165: with 📌 the four fit, «Esci» on one line */
 .who { display: flex; gap: .45rem; align-items: baseline; padding: .55rem .2rem .2rem; border-top: 1px solid var(--line);
   font-size: .9rem; overflow: hidden; white-space: nowrap; }
 .who strong { overflow: hidden; text-overflow: ellipsis; }
@@ -352,3 +362,10 @@ select option, select optgroup { background-color: var(--panel-solid); color: va
 /* 🛟 the admin inside a user's account (main.js assistBanner): over every page */
 .assist-banner { position: sticky; top: 0; z-index: 1000; display: flex; gap: .8rem; align-items: center; justify-content: center; flex-wrap: wrap; padding: .45rem 1rem; background: #b45309; color: #fff; font-weight: 600; }
 .assist-banner button { background: #fff; color: #7c2d12; border: 0; border-radius: 6px; padding: .2rem .8rem; }
+
+/* 🔐 Accessi (N165): each area a grid of compact cards; an open card takes the row */
+.access-area { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: .5rem; margin-bottom: 1rem; align-items: start; }
+.access-area > h3 { grid-column: 1 / -1; margin: .4rem 0 0; }
+.access-area > details.card { padding: .55rem .8rem; margin: 0; min-height: 0; width: auto; gap: .4rem; }
+.access-area > details.card[open] { grid-column: 1 / -1; }
+.access-area > details.card > summary { cursor: pointer; }

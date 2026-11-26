@@ -12,7 +12,7 @@ import { pluginSlot } from "./plugin_slot.js";
 
 export default {
   id: "edge",
-  icon: "☁️",
+  icon: "🛰️",
   title: "nav.sec.edge",
   plugin: "cloudflare",                // in the menu only when that plugin is on
 

@@ -90,6 +90,15 @@ export default {
       });
       this.lines.append(ring);
     }
+    // 🖥️ N169 (owner, 27 Nov): the same Aurora on a computer where she is not installed — the window, its address
+    // form (the Android app's), its notifications; one script for the user, nothing as root
+    const desk = el("div", "pa-desk");
+    const dl = el("a", "pa-download", `🖥️ ${t("phoneapp.desk_download")}`);
+    dl.href = "/v1/aurora/app/desk";
+    dl.setAttribute("download", "aurora-desk-client.tar.gz");
+    desk.append(el("h3", "setting-cat", `🖥️ ${t("phoneapp.desk_title")}`), el("p", "muted", t("phoneapp.desk_hint")), dl,
+      el("pre", "pa-code", "tar -xzf aurora-desk-client.tar.gz && sh aurora-desk-client/install.sh"));
+    box.append(desk);
     const mine = (navigator.userAgent.match(/AuroraApp\/([\d.]+)/) || [])[1];
     if (mine) box.append(el("p", "pa-mine", t(a.available && older(mine, a.version) ? "phoneapp.update" : "phoneapp.using",
                                             { v: mine, n: a.version || "" })));

@@ -47,7 +47,8 @@ class Tray:
             self.icon.setToolTip("Aurora Desktop — impara (versione 1)")
             menu = QMenu()
             for text, slot in (("Aurora", self._web), ("Apri", self.show), ("Mostrami", self._demonstrate),
-                               ("Cosa ho imparato", self._learned), ("Esci", self.quit)):
+                               ("Cosa ho imparato", self._learned), ("Cambia indirizzo di Aurora", self._web_setup),
+                               ("Esci", self.quit)):
                 a = QAction(text, menu)
                 a.triggered.connect(slot)
                 menu.addAction(a)
@@ -80,6 +81,12 @@ class Tray:
         """The WebUI window (N156): its own unit, with the network this app has not (the launcher's --web)."""
         import subprocess
         subprocess.Popen([WEB_LAUNCHER, "--web"], stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                         stderr=subprocess.DEVNULL, start_new_session=True)
+
+    def _web_setup(self) -> None:
+        """The Android app's address form again (address.py, connect_form.py): another Aurora, a new port."""
+        import subprocess
+        subprocess.Popen([WEB_LAUNCHER, "--web-setup"], stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
                          stderr=subprocess.DEVNULL, start_new_session=True)
 
     def _learned(self) -> None:

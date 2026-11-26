@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright 2026 A.U.R.O.R.A. Project
 // The conversation: history on load, composer with attachments, live answers.
+import { chatTabs } from "./chat_tabs.js";
 import { call, stream } from "../api.js";
 import { bus } from "../bus.js";
 import { clock, el, scrollEnd, toBase64, useCss } from "../dom.js";
@@ -65,6 +66,8 @@ export default {
           <button type="submit" class="send" data-i18n="chat.send"></button>
         </form>
       </div>`;
+    root.classList.add("has-tabs");                        // N165 F3: 💬 its tabs over the conversation
+    root.prepend(chatTabs("chat"));
     apply(root);
     const conv = root.querySelector(".conversation");
     const messages = root.querySelector(".messages");

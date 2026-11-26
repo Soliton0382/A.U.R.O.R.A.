@@ -140,8 +140,11 @@ export default {
       go.disabled = true;
       go.textContent = t("acc.opening");
       let url;
-      try { url = (await call(`/v1/aurora/accounts/${a.id}/login`, { method: "POST" })).url; }
-      catch (e) { go.disabled = false; go.textContent = `🔐 ${t("acc.sign_in")}`; box.append(el("p", "error", e.message)); return; }
+      // C757: quiet — an action redraws the page 1.2 s later (main.js «aurora:acted»), and the box with the code's field
+      // went with it as soon as the person left for the sign-in page
+      box.dataset.busy = "1";
+      try { url = (await call(`/v1/aurora/accounts/${a.id}/login`, { method: "POST", quiet: true })).url; }
+      catch (e) { delete box.dataset.busy; go.disabled = false; go.textContent = `🔐 ${t("acc.sign_in")}`; box.append(el("p", "error", e.message)); return; }
       const link = el("a", "", t("acc.open_link"));
       link.href = url;
       link.target = "_blank";
@@ -155,8 +158,8 @@ export default {
         send.disabled = true;
         out.textContent = t("acc.checking");
         try {
-          const s = await call(`/v1/aurora/accounts/${a.id}/code`, { method: "POST", body: JSON.stringify({ code: code.value }) });
-          if (s.logged_in) { this.enter(); return; }
+          const s = await call(`/v1/aurora/accounts/${a.id}/code`, { method: "POST", quiet: true, body: JSON.stringify({ code: code.value }) });
+          if (s.logged_in) { delete box.dataset.busy; this.enter(); return; }
           out.textContent = t("acc.code_refused");
         } catch (e) { out.textContent = e.message; }
         send.disabled = false;

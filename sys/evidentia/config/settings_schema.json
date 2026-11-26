@@ -1,0 +1,124 @@
+{
+ "about": "Every setting of Evidentia, as Aurora's: the .env holds the values, this file describes them. Paths relative to the project's folder unless absolute.",
+ "settings": [
+  {
+   "key": "EVD_SOURCES_DIR",
+   "type": "path",
+   "recommended": "",
+   "it": "La cartella dei PDF originali (montata in sola lettura nei servizi): è di questa macchina, va nel .env.",
+   "en": "The original PDFs' folder (mounted read-only in the services): this machine's own, set in the .env."
+  },
+  {
+   "key": "EVD_DATA_DIR",
+   "type": "path",
+   "recommended": "sys/data",
+   "it": "Indici, manifesto ed estrazioni (scritti solo dall'account evidentia).",
+   "en": "Indexes, manifest and extractions (written only by the evidentia account)."
+  },
+  {
+   "key": "EVD_MODELS_DIR",
+   "type": "path",
+   "recommended": "sys/models",
+   "it": "I modelli scaricati, di sola lettura.",
+   "en": "The downloaded models, read-only."
+  },
+  {
+   "key": "EVD_SERVICE_USER",
+   "type": "str",
+   "recommended": "evidentia",
+   "it": "L'account dei servizi: senza login, mai root.",
+   "en": "The services' account: no login, never root."
+  },
+  {
+   "key": "EVD_EMBED_MODEL",
+   "type": "str",
+   "recommended": "embeddinggemma-300m",
+   "it": "Il modello degli embedding (cartella in EVD_MODELS_DIR), scelto con la misura I2.",
+   "en": "The embedding model (folder in EVD_MODELS_DIR), chosen with measure I2."
+  },
+  {
+   "key": "EVD_GPUS",
+   "type": "str",
+   "recommended": "0,1",
+   "it": "Le GPU che i lavori lunghi possono usare, quando Aurora è a riposo.",
+   "en": "The GPUs long jobs may use, while Aurora rests."
+  },
+  {
+   "key": "EVD_WORKERS",
+   "type": "int",
+   "recommended": "6",
+   "it": "Processi per l'estrazione del testo (I1: 1.000 PDF in 3,4 s con 6).",
+   "en": "Processes for the text extraction (I1: 1,000 PDFs in 3.4 s with 6)."
+  },
+  {
+   "key": "EVD_SOCKET_GROUP",
+   "type": "str",
+   "recommended": "evidentia-api",
+   "it": "Il gruppo che può raggiungere il socket dell'API: il servizio e l'account di Aurora (evd_root.py), nessun altro.",
+   "en": "The group that may reach the API's socket: the service and Aurora's account (evd_root.py), nobody else."
+  },
+  {
+   "key": "EVD_BACKUP_DIR",
+   "type": "str",
+   "recommended": "",
+   "it": "Cartella del backup di Evidentia (scritta dall'installazione: <destinazione dei backup di Aurora>/evidentia)",
+   "en": "Evidentia's backup folder (written by the install: <Aurora's backup destination>/evidentia)"
+  },
+  {
+   "key": "EVD_BACKUP_KEY_FILE",
+   "type": "str",
+   "recommended": "/etc/aurora/evidentia-backup.key",
+   "it": "La chiave del backup di Evidentia (di root; Aurora non la legge)",
+   "en": "Evidentia's backup key (root's; Aurora never reads it)"
+  },
+  {
+   "key": "EVD_BACKUP_KEEP_DAILY",
+   "type": "int",
+   "recommended": "7",
+   "it": "Copie giornaliere tenute",
+   "en": "Daily copies kept"
+  },
+  {
+   "key": "EVD_BACKUP_KEEP_WEEKLY",
+   "type": "int",
+   "recommended": "4",
+   "it": "Copie settimanali tenute",
+   "en": "Weekly copies kept"
+  },
+  {
+   "key": "EVD_BACKUP_KEEP_MONTHLY",
+   "type": "int",
+   "recommended": "6",
+   "it": "Copie mensili tenute",
+   "en": "Monthly copies kept"
+  },
+  {
+   "key": "EVD_NAS_SOURCES",
+   "type": "str",
+   "recommended": "",
+   "it": "La cartella delle fonti sul NAS (smb://indirizzo/condivisione/cartella): montata in sola lettura per Evidentia da aurora-root install evidentia --nas; di questa macchina.",
+   "en": "The sources' folder on the NAS (smb://address/share/folder): mounted read only for Evidentia by aurora-root install evidentia --nas; this machine's own."
+  },
+  {
+   "key": "EVD_NAS_DIR",
+   "type": "path",
+   "recommended": "",
+   "it": "Dove è montata la cartella delle fonti del NAS (scritto dall'installazione).",
+   "en": "Where the NAS's sources folder is mounted (written by the install)."
+  },
+  {
+   "key": "EVD_OWNER",
+   "type": "str",
+   "recommended": "",
+   "it": "Il proprietario dell'archivio di sempre (EVD_DATA_DIR): scritto dall'installazione. Gli altri utenti hanno ognuno il suo archivio in EVD_ARCHIVE_DIR.",
+   "en": "The owner of the archive as it was (EVD_DATA_DIR): written by the install. Every other user has an archive of their own in EVD_ARCHIVE_DIR."
+  },
+  {
+   "key": "EVD_ARCHIVE_DIR",
+   "type": "path",
+   "recommended": "/var/lib/evidentia",
+   "it": "La cartella degli archivi degli utenti (di root, gruppo evidentia): uno per utente, <utente>/data.",
+   "en": "The folder of the users' archives (root's, group evidentia): one each, <user>/data."
+  }
+ ]
+}

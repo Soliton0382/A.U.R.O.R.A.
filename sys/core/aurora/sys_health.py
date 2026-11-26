@@ -228,6 +228,14 @@ def check(cfg: sys_config.Config | None = None) -> dict:
             f"{len(b['snapshots'])} copie", f"the last {age_h:.0f} h ago: {last.get('files')} files, {last.get('bytes', 0) / 1e9:.1f} GB, "
             f"{len(b['snapshots'])} copies"), b.get("dest", ""))
 
+    from . import sys_addons                             # the installed add-ons' own lines (Evidentia: service, backup)
+    for name in sys_addons.installed():
+        try:
+            for line in getattr(sys_addons.module(name), "health", lambda c: [])(cfg):
+                add(*line)
+        except Exception as e:                          # noqa: BLE001 — a line of its own, never a broken page
+            add(name, "warn", _t(f"controllo non riuscito: {type(e).__name__}", f"check failed: {type(e).__name__}"))
+
     try:                                                 # this installation's own lines (aurora/local), if any
         from . import local
         for line in getattr(local, "health", lambda c: [])(cfg):

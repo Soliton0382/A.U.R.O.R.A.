@@ -62,6 +62,7 @@ def main() -> int:
     ap.add_argument("--snapshot", default="latest")
     ap.add_argument("--only", default="", help="restore only paths starting with this (e.g. sys/vault)")
     ap.add_argument("--parts", default="", help="restore only these parts: config,memory,vault,files,plugins,history")
+    ap.add_argument("--user", action="append", default=[], help="only this user's files (repeatable)")
     ap.add_argument("--code", nargs="?", const=ASK, default="",
                     help="ask for the recovery code, when the key file is lost (never given here: it is asked)")
     a = ap.parse_args()
@@ -102,7 +103,8 @@ def main() -> int:
         if a.action == "restore":
             if not a.to:
                 ap.error("restore needs --to DIR (an empty folder)")
-            print(json.dumps(sys_backup.restore(cfg, a.to, a.snapshot, a.only, a.code, sys_backup_parts.chosen(a.parts) if a.parts else ())))
+            print(json.dumps(sys_backup.restore(cfg, a.to, a.snapshot, a.only, a.code, sys_backup_parts.chosen(a.parts) if a.parts else (),
+                                                   tuple(a.user))))
             return 0
     except sys_backup.BackupError as e:
         log.error("backup %s failed: %s", a.action, e)

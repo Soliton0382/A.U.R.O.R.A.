@@ -207,6 +207,46 @@ ProtectHome=read-only
 PrivateTmp=yes
 """)
 
+# Root, for one job: a restore asked from the WebUI (owner, 27 Nov). The page checks the admin's password and code, the
+# API writes the request and starts this unit (polkit: aurora units); sys_restore.py --from-request reads it strictly
+# and does what --apply does: Aurora stopped, today's data aside (never deleted), the backup's in place, Aurora started.
+# Not part of aurora.target: stopping Aurora must not stop the restore that stopped her.
+RESTORE_UNIT = Template("""# Generated from .env by sys/core/script/sys_install_services.py
+[Unit]
+Description=Aurora — a restore asked from the WebUI (today's data set aside, never deleted)
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=$root
+ExecStart=$exec --from-request
+$env
+TimeoutStartSec=6h
+NoNewPrivileges=yes
+ProtectSystem=true
+PrivateTmp=yes
+""")
+
+# Root, for one job: a user's own NAS folder for Evidentia (N168, 27 Nov). The WebUI writes the request, the API
+# starts this unit (polkit: aurora units); sys_root_evidentia_nas.py --from-request reads it strictly and once, mounts
+# that folder read only for Evidentia's account. Harmless where Evidentia is not installed (no request, nothing done).
+EVD_NAS_UNIT = Template("""# Generated from .env by sys/core/script/sys_install_services.py
+[Unit]
+Description=Aurora — a user's own NAS folder for Evidentia (read only)
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=$root
+ExecStart=$exec --from-request
+$env
+TimeoutStartSec=5min
+NoNewPrivileges=yes
+ProtectSystem=true
+PrivateTmp=yes
+""")
+
 TARGET = Template("""# Generated from .env by sys/core/script/sys_install_services.py
 [Unit]
 Description=Aurora — all services
@@ -496,7 +536,12 @@ def main() -> int:
             encoding="utf-8")
         (out / "aurora-retime.service").write_text(RETIME_UNIT.substitute(
             root=root, exec=_as_root("sys_backup_retime.py"), env=_root_env(root)), encoding="utf-8")
-        backup = ["aurora-backup.service", "aurora-backup.timer", "aurora-backup-failed.service", "aurora-retime.service"]
+        (out / "aurora-restore.service").write_text(RESTORE_UNIT.substitute(
+            root=root, exec=_as_root("sys_restore.py"), env=_root_env(root)), encoding="utf-8")
+        (out / "aurora-evidentia-nas.service").write_text(EVD_NAS_UNIT.substitute(
+            root=root, exec=_as_root("sys_root_evidentia_nas.py"), env=_root_env(root)), encoding="utf-8")
+        backup = ["aurora-backup.service", "aurora-backup.timer", "aurora-backup-failed.service", "aurora-retime.service",
+                  "aurora-restore.service", "aurora-evidentia-nas.service"]
         if dest.startswith("smb://"):
             (cfg.path("AURORA_STATUS_DIR") / "backup").mkdir(parents=True, exist_ok=True)
             (out / "aurora-mount.service").write_text(MOUNT_UNIT.substitute(

@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/img/banner.svg" alt="A.U.R.O.R.A." width="100%"></p>
 
-<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-2624%20passed-1baf7a" alt="Tests"> <img src="https://img.shields.io/badge/code-151k%20lines-6a4fd6" alt="Lines of code"> <a href="https://doi.org/10.5281/zenodo.23650856"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.23650856.svg" alt="DOI"></a></p>
+<p align="center"><img src="https://img.shields.io/badge/license-Apache--2.0-2a78d6" alt="License"> <img src="https://img.shields.io/badge/python-3.14-1baf7a" alt="Python"> <img src="https://img.shields.io/badge/CUDA-13.4-008300" alt="CUDA"> <img src="https://img.shields.io/badge/Ubuntu-26.04-eb6834" alt="Ubuntu"> <img src="https://img.shields.io/badge/tests-2712%20passed-1baf7a" alt="Tests"> <img src="https://img.shields.io/badge/code-153k%20lines-6a4fd6" alt="Lines of code"> <a href="https://doi.org/10.5281/zenodo.23650856"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.23650856.svg" alt="DOI"></a></p>
 
 <p align="center">🇮🇹 <b>Italiano</b> · 🇬🇧 <a href="README.en.md">English</a></p>
 
@@ -74,6 +74,7 @@ con l'esenzione firmata dal proprietario, e ciò che parte è sempre mascherato 
 | **Chi attacca dietro Cloudflare** | il firewall vede solo i nodi di Cloudflare: con i permessi giusti nel token (la pagina 🛡️ Sicurezza → ☁️ Cloudflare li elenca) Aurora legge chi c'è dietro (visitatori a cui il tuo server non ha risposto, con percorsi e «cosa sembra»), li blocca su Cloudflare con la tua approvazione o da sola se accendi `AURORA_CLOUDFLARE_AUTOBLOCK` (solo gli scanner, a tempo, al massimo N al giorno); il traffico di Cloudflare già rifiutato dal firewall diventa un conteggio, non un incidente; un indirizzo condiviso si blocca solo sulla porta attaccata (M213) |
 | **Honeypot contro le prompt injection** | come lo SmartScreen per i file scaricati: pagine, ricerche, e-mail, commenti e documenti dalla rete sono marcati e provati prima su un'esca — il modello locale, strumenti finti, una chiave finta, nessuna rete né VM; se l'esca agisce, il contenuto non arriva mai ad Aurora né al vault, il sito finisce tra i malevoli e ti viene detto (la segnalazione a VirusTotal la approvi tu). Per reputazione: un sito «verde» solo dove ci sono frasi sospette, uno sconosciuto o dubbio per intero. Misurato: 13 trappole su 24 scoperte (6 su 8 senza segnali evidenti), 0 falsi allarmi; Claude come esca non ne scopre nessuna, perché non ci casca (M215, C317) |
 | **Salute** | pagina ❤️: piani del dietologo, programmi del trainer, esami, cifrati con la tua chiave; dagli esami il modello locale legge i valori (📈 nel tempo, con l'intervallo di riferimento e i valori fuori segnalati «parlane con il tuo medico»); mai al cloud |
+| **Aurora sul computer** | la finestra di Aurora con le sue notifiche sul desktop: sulla macchina di Aurora si collega da sola; su un altro computer Linux si scarica da 📱 App → 🖥️ (`tar -xzf aurora-desk-client.tar.gz && sh aurora-desk-client/install.sh`, solo per il tuo utente, niente come root) e la prima volta chiede l'indirizzo e la porta della tua Aurora, con lo stesso modulo dell'app Android |
 | **Aurora Desktop (impara, versione 1)** | un'app sul desktop Linux (`sudo aurora-root install desk`): all'accesso si mette nell'area di notifica, accanto all'orologio, ferma finché non la usi; si apre da lì o dal menu: premi «Mostrami», scegli una finestra e lavori; Aurora registra solo quella finestra, scrive la procedura (passi, ancore che non dipendono dalla lingua, parametri) e te la mostra; i valori d'esempio restano solo se li tieni; la salvi come bozza e la provi sul desktop virtuale con tasti veri, mai sul tuo. Non agisce sul tuo desktop: questo arriva con la versione 2 (codice TOTP e verificatore). Misurato sul banco: 30 dimostrazioni su 30 diventate bozze che funzionano con valori nuovi (M336); password e codici mai registrati, 0 su 25 (M338; i programmi KDE però mandano i caratteri delle password a chi ascolta l'accessibilità: non scriverle durante una dimostrazione, C745); l'accessibilità si riaccende solo mentre registri e torna com'era anche dopo un crash (20 su 20) |
 | **Meteo** | plugin 🌦️ (Open-Meteo, senza chiave): adesso, previsioni a 3 giorni, bollettino giornaliero, allerta sui cambi repentini e allerte ufficiali della regione (MeteoAlarm) |
 | **Domande di seguito** | «e chi l'ha scoperto?» viene completata con la conversazione e la risposta precedente, con le sue fonti a fuoco; sotto ogni risposta 3-4 domande complete per approfondire, ognuna con le sue fonti (M73: seguiti giusti 2 → 6 su 14, approfondimenti 8 su 11 con voto ≥ 7; 0 domande complete cambiate su 20) |
@@ -711,6 +712,27 @@ cloud a tua scelta e ogni testo esce mascherato.
 
 Su Windows e Mac, per ora: niente ragionatore locale, voce di Aurora e plugin (la loro gabbia è in arrivo). Il Mac è
 provato su un Mac vero di GitHub Actions (workflow Install), non ancora a mano.
+
+## 🕵️ Evidentia: l'investigatore dei documenti (add-on)
+
+Per un ufficio legale o per un'indagine su una grande raccolta di documenti: Evidentia legge una cartella per livelli
+(testo, OCR delle scansioni), cerca passaggi, incrocia identificativi, ricostruisce dai documenti chi compare e in quale
+ruolo, apre piste e le fa lavorare ai suoi agenti (20, in due pacchetti: investigativo e legale). Le sue regole:
+**ogni affermazione con documento e pagina**; fatto, testimonianza e accusa sempre separati; relazioni solo dai
+documenti, per tipo, mai un «punteggio»; i nomi protetti e oscurati non escono mai; le foto di persone non vengono
+analizzate. Le raccolte e le numerazioni (Bates o altre) si configurano, non sono scritte nel codice.
+
+È un **add-on**: un servizio suo (account `evidentia`, socket locale, nessuna rete), eseguito dalla copia firmata di
+root; Aurora è solo il suo client. **Il suo archivio non entra mai in Aurora**: niente vault, niente memoria, niente
+lezioni; la sua chat dedicata usa solo i suoi strumenti, sul modello locale. In chat ad Aurora si può chiedere a che
+punto sono le indagini. Installazione: la domanda di `install.sh` (o `--with-evidentia`), poi
+`sudo aurora-root install evidentia`; i dati di ogni utente nella sua cartella `usr/<utente>/evidentia`, che Aurora
+non può leggere.
+
+**Backup**: suo e separato, con lo stesso metodo di quello di Aurora (cifrato, deduplicato, conservazione giornaliera,
+settimanale e mensile, verifica a campione) nella stessa destinazione, cartella `evidentia/`, ma con **la sua chiave**:
+il codice di recupero si vede una sola volta all'installazione. Ripristino in una cartella vuota:
+`sudo /usr/local/lib/aurora-evidentia/venv/bin/python -I /usr/local/lib/aurora/sys/evidentia/script/evd_backup.py restore <cartella>`.
 
 ## 📚 Aurora parte vuota: la conoscenza va raccolta
 

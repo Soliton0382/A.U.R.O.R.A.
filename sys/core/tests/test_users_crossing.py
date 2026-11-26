@@ -62,6 +62,12 @@ def test_guest_never_sees_boss_s_things(cfg):
     assert guest["bugreport"] == 403 and guest["plugin_icon"] == 403                    # C457: the machine's
     assert guest["template_over"] in ("refused", "no routine switched on to save") and guest["template_kept"] == "boss"
     assert guest["oauth_saved"] is False and guest["oauth_machine"] is False           # boss's token stays boss's
+    # N165: features, not plugins
+    assert guest["feat_before"] == 200 and boss["feat_close"] == 200
+    assert guest["feat_closed"] == 403 and boss["feat_closed"] == 200 and guest["feat_hidden"] is True
+    assert guest["feat_others"] == 200 and guest["feat_set"] == 403
+    assert boss["feat_old_name"] == 200 and guest["feat_opened"] == 200 and guest["feat_shown"] is True
+    assert boss["feat_rules"] == ["calendar"]                                           # one rule, under the feature's name
 
 
 def test_the_same_holds_when_aurora_lives_behind_a_symlink(tmp_path):

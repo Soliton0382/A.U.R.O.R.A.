@@ -17,7 +17,7 @@ const GROUPS = { understand: ["route", "translate"], read: ["gate", "extract"], 
 
 export default {
   id: "models",
-  icon: "🧠",
+  icon: "🧬",
   title: "nav.models",
 
   mount(root) {

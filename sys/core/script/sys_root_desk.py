@@ -44,9 +44,10 @@ LAUNCHER = f"""#!/bin/sh
 # unit with a random name, so no drop-in under ~/.config/systemd/user applies; accessibility put back when it stops.
 case "$XDG_RUNTIME_DIR" in /run/user/[0-9]*) ;; *) echo "aurora-desk: no session" >&2; exit 1 ;; esac
 case "$WAYLAND_DISPLAY" in wayland-[0-9]*) ;; *) echo "aurora-desk: Wayland only" >&2; exit 1 ;; esac
-case "$*" in "" | --tray | --web) ;; *) echo "aurora-desk: only --tray or --web" >&2; exit 1 ;; esac
+case "$*" in "" | --tray | --web | --web-setup) ;; *) echo "aurora-desk: only --tray, --web or --web-setup" >&2; exit 1 ;; esac
+setup=0; [ "$*" = "--web-setup" ] && setup=1
 id=$(od -An -N4 -tx4 /dev/urandom | tr -d ' ')
-if [ "$*" = "--web" ]; then
+if [ "$*" = "--web" ] || [ "$*" = "--web-setup" ]; then
   # N156: the WebUI window. Network sockets (Aurora is reached over HTTP), no system-call filter (Chromium's own
   # sandbox needs its namespaces); the page itself blocks every host but Aurora's (desk/app/web.py).
   # Mesa only, never the NVIDIA vendor library: the screen is on the integrated GPU and the RTX cards hold Aurora's
@@ -56,7 +57,7 @@ if [ "$*" = "--web" ]; then
     /usr/bin/env -i PATH=/usr/bin:/bin HOME="$HOME" XDG_RUNTIME_DIR="$XDG_RUNTIME_DIR" \\
       WAYLAND_DISPLAY="$WAYLAND_DISPLAY" DBUS_SESSION_BUS_ADDRESS="$DBUS_SESSION_BUS_ADDRESS" \\
       LANG="${{LANG:-C.UTF-8}}" LANGUAGE="${{LANGUAGE:-}}" QT_QPA_PLATFORM=wayland \\
-      DESK_WEB_URL={WEB_URL} \\
+      DESK_WEB_URL={WEB_URL} DESK_WEB_SETUP="$setup" \\
       __EGL_VENDOR_LIBRARY_FILENAMES=/usr/share/glvnd/egl_vendor.d/50_mesa.json __GLX_VENDOR_LIBRARY_NAME=mesa \\
       CUDA_VISIBLE_DEVICES= VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/radeon_icd.json \\
       {PY} {APP}/web.py

@@ -97,6 +97,28 @@ def may_manage(area: str):
     return dep
 
 
+def may_use(feature: str):
+    """A route of a plugin or an add-on (sys_users_groups): the admin always, a user when the admin let them in, by
+    name or by group (owner, 27 Nov)."""
+    async def dep(request: Request, _: None = Depends(auth)) -> None:
+        from aurora import sys_users_groups
+        if not sys_users_groups.may_use(BASE.base or BASE, me(), feature, _admin()):
+            raise HTTPException(status_code=403, detail=f"the admin has not opened «{feature}» to you (👥 Users → groups and access)")
+    return dep
+
+
+def features() -> list[str]:
+    """N165: the features of config/access_features.json (an add-on's only where it is installed), then every plugin
+    in no feature as plugin:<name> (connectors and tools), as the access rules name them."""
+    from aurora import sys_addons
+    from aurora import sys_users_groups as G
+    from .core import plugin_host
+    names = sorted({p.name for p in plugin_host().plugins(with_tools=False)})
+    installed = set(sys_addons.installed())
+    own = [f["id"] for f in G.registry() if f["id"] not in sys_addons.KNOWN or f["id"] in installed]
+    return own + [f"plugin:{n}" for n in names if G.of_plugin(n).startswith("plugin:")]
+
+
 # ---- login --------------------------------------------------------------------------------------------------------
 def users_login() -> bool:
     """Name, password and code at the login: multi-user, or single-user with the admin's password (and code) set."""
@@ -175,7 +197,17 @@ def whoami(request: Request) -> dict:
             "has_password": bool(u and u["has_password"]), "totp_on": bool(u and u["totp_on"]),
             "welcomed": (name or "") in _welcomed(), "prefs": _prefs().get(name or "", {}),
             "may": {a: sys_users_perm.may(BASE, name, a, _admin()) for a in sys_users_perm.AREAS},
+            "hidden": _hidden_pages(name),                           # N165: the pages of the features kept from them
             "assist": getattr(request.state, "assist", None)}       # 🛟 the admin inside this account: the banner
+
+
+def _hidden_pages(name: str | None) -> list[str]:
+    from aurora import sys_users_groups
+    try:
+        return sys_users_groups.denied_pages(BASE.base or BASE, name, _admin()) if name and name != _admin() else []
+    except Exception:                                   # noqa: BLE001 — the menu as before rather than no /me
+        log.exception("access: the hidden pages")
+        return []
 
 
 # each person's look of the WebUI, on any device (ROADMAP 107; owner, 15 Oct: «salva lo stile per utente sul server»):
@@ -357,6 +389,76 @@ def my_key_revoke(key_id: str) -> dict:
 
 
 # ---- the admin's Users page ---------------------------------------------------------------------------------------
+@router.get("/v1/aurora/users/groups", dependencies=[Depends(admin_only)])
+def groups_list() -> dict:
+    """👥 The groups and who may use each plugin and add-on (the admin's page)."""
+    from aurora import sys_users_groups as G
+    base = BASE.base or BASE
+    return {"groups": G.load(base)["groups"], "access": G.table(base, features()), "users": [u["name"] for u in _users().list()]}
+
+
+@router.put("/v1/aurora/users/groups/{name}", dependencies=[Depends(admin_only)])
+async def group_put(name: str, request: Request) -> dict:
+    from aurora import sys_users_groups as G
+    body = await request.json()
+    members = body.get("members")
+    known = {u["name"] for u in _users().list()}
+    if members is not None and not all(m in known for m in members):
+        raise HTTPException(status_code=422, detail="a member who is not a user of this Aurora")
+    try:
+        d = G.set_group(BASE.base or BASE, name, None if body.get("delete") else list(members or []))
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from None
+    log.info("audit: group %s %s", name, "removed" if body.get("delete") else f"set ({len(members or [])} members)")
+    return {"groups": d["groups"]}
+
+
+@router.get("/v1/aurora/users/credentials", dependencies=[Depends(admin_only)])
+def credential_copies() -> dict:
+    """N167: which of the admin's own credentials sit, the same value, in another user's settings (names only)."""
+    from aurora import sys_user_config
+    base = BASE.base or BASE
+    admin = _admin()
+    if not admin:
+        return {"copies": {}}
+    return {"copies": sys_user_config.copies(base, admin)}
+
+
+@router.post("/v1/aurora/users/credentials/clear", dependencies=[Depends(admin_only)])
+def credential_clear() -> dict:
+    """Those copies emptied; the plugin hosts made again so nobody keeps acting with the admin's accounts."""
+    from aurora import sys_user_config
+    from .core import _state
+    base = BASE.base or BASE
+    admin = _admin()
+    gone = sys_user_config.clear_copies(base, admin) if admin else {}
+    for name in gone:
+        _state.get("plugin_hosts", {}).pop(name, None)
+    log.info("audit: the admin's credentials cleared from other users: %s", {k: len(v) for k, v in gone.items()})
+    return {"cleared": gone}
+
+
+@router.put("/v1/aurora/access/{feature}", dependencies=[Depends(admin_only)])
+async def access_put(feature: str, request: Request) -> dict:
+    from aurora import sys_users_groups as G
+    body = await request.json()
+    feature = G.canonical(feature)                       # an old name (plugin:calendar, addon:evidentia) as its feature
+    if feature not in features():
+        raise HTTPException(status_code=404, detail="no such feature")
+    from aurora import sys_addons
+    name = feature.split(":", 1)[-1]
+    if name in sys_addons.KNOWN and not sys_addons.PER_USER.get(name, True) and (body.get("all") or body.get("users") or body.get("groups")):
+        raise HTTPException(status_code=422, detail=f"«{name}» keeps one archive for the whole machine for now: it opens to "
+                                                    "other users once each has an archive of their own")
+    try:
+        G.set_access(BASE.base or BASE, feature, bool(body.get("all")), list(body.get("users") or []),
+                     list(body.get("groups") or []))
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from None
+    log.info("audit: access to %s: %s", feature, "everyone" if body.get("all") else "users/groups listed")
+    return {"access": G.table(BASE.base or BASE, [feature])[0]}
+
+
 @router.get("/v1/aurora/users", dependencies=[Depends(admin_only)])
 def users_list() -> dict:
     from aurora import kno_anger, mdl_budget, sys_assist, sys_user_config, sys_users_perm

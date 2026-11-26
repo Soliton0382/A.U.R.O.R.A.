@@ -4,7 +4,7 @@
 // has something to see to (owner, 30 Oct: «la pagina stato, è incasinata» — eleven parts open one under the other,
 // 4284 px, the vault's table alone 1439).
 import { call } from "../api.js";
-import { backupRow } from "../backup.js";
+import { backupRow, restoreBox } from "../backup.js";
 import { clock, el, useCss } from "../dom.js";
 import { apply, lang, t } from "../i18n.js";
 import { moodRows, moodTitle } from "../mood.js";
@@ -67,7 +67,7 @@ export default {
 
     if (b) {                                       // the owner's data: where it is copied, when, how many copies
       const ok = b.querySelector(".ic")?.textContent === "✅";
-      part(box, "backup", t("status.backup"), null, true, b);             // one line: always shown
+      part(box, "backup", t("status.backup"), null, true, b, b && restoreBox());   // the row, and ♻️ restore under it (27 Nov)
       tiles.push(["backup", "💾", t("status.backup"), ok ? "✅" : "⚠️", ok]);
     }
 

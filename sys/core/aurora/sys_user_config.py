@@ -163,3 +163,36 @@ def merge(cfg: sys_config.Config, admin: str) -> int:
     with _lock:
         _cache.pop(admin, None)
     return len(own)
+
+
+# ---- N167: the owner's accounts are the owner's -------------------------------------------------------------------
+CREDENTIAL = ("TOKEN", "PASSWORD", "_KEY", "SECRET", "_USER", "EMAIL", "CHAT_ID", "PAGE_ID", "ACCOUNT", "ORCID")
+
+
+def copies(cfg: sys_config.Config, admin: str) -> dict[str, list[str]]:
+    """Owner, 27 Nov: «togli le mie credenziali e token dagli altri utenti… restano configurati solo per me». For
+    each other user, the personal settings holding a credential that are the very value of the admin's own (a copy:
+    made by hand, by an old migration, by assistance). Key names only, never a value."""
+    cfg = cfg.base or cfg
+    mine = _own(cfg, admin)
+    keys = [k for k in user_keys(cfg) if any(w in k for w in CREDENTIAL)]
+    out = {}
+    for name in sorted(L._registered(cfg)):
+        if name == admin:
+            continue
+        own = _own(cfg, name)
+        same = sorted(k for k in keys if str(own.get(k, "")).strip() and own.get(k) == mine.get(k))
+        if same:
+            out[name] = same
+    return out
+
+
+def clear_copies(cfg: sys_config.Config, admin: str) -> dict[str, list[str]]:
+    """The copies above emptied in each user's .env (their own values, if different, are never touched)."""
+    cfg = cfg.base or cfg
+    found = copies(cfg, admin)
+    for name, keys in found.items():
+        sys_config.write_env(env_path(cfg, name), {k: "" for k in keys})
+        with _lock:
+            _cache.pop(name, None)
+    return found

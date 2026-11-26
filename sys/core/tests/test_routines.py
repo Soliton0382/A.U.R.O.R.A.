@@ -87,6 +87,10 @@ def test_welcome_once_per_plugin(cfg):
     assert R.newly_ready(cfg, [a, b]) == []
     b.available = True
     assert [p.name for p in R.newly_ready(cfg, [a, b])] == ["github"]
+    a.available = False                                   # C756: away for a moment (a restart, the NAS slow)…
+    assert R.newly_ready(cfg, [a, b]) == []
+    a.available = True                                    # …and back: no second welcome
+    assert R.newly_ready(cfg, [a, b]) == []
 
 
 def test_new_notification_kinds_are_on_for_owners_who_chose_before(cfg):

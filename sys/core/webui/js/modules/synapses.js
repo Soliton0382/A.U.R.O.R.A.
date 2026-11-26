@@ -11,7 +11,7 @@ import { deductionsBox } from "./deductions_box.js";
 
 export default {
   id: "synapses",
-  icon: "🧠",
+  icon: "🕸️",
   title: "nav.synapses",
 
   mount(root) {

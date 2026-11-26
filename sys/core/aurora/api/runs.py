@@ -167,6 +167,15 @@ async def acquire(request: Request) -> dict:
     return {"run_id": start_run(question, origin="acquire", job=job)["id"]}
 
 
+@router.get("/v1/aurora/addons", dependencies=[Depends(auth)])
+def addons() -> dict:
+    """The installed add-ons' pages (sys_addons): the WebUI imports each entry module."""
+    from aurora import sys_addons, sys_users_groups
+    from .core import BASE, _admin, me
+    who, admin = me(), _admin()
+    return {"addons": sys_addons.listing(lambda n: sys_users_groups.may_use(BASE.base or BASE, who, f"addon:{n}", admin))}
+
+
 @router.get("/v1/aurora/chat/commands", dependencies=[Depends(auth)])
 def chat_commands(lang: str = "it") -> dict:
     """The «/» commands the composer lists (N158): a tool asked for by name; the automatic routing stays the default."""

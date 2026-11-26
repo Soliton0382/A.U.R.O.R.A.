@@ -37,27 +37,34 @@ def choices(cfg: sys_config.Config) -> dict[str, bool]:
 
 
 def for_users(cfg: sys_config.Config, name: str) -> bool:
-    """True when the users (not only the admin) may use this plugin."""
-    return choices(cfg).get(name, name in FOR_USERS)
+    """True when every user (not only the admin) may use this plugin. N167 (27 Nov): one rule — the feature's in
+    👥 Utenti → Accessi (sys_users_groups); this switch and the old file only read and write it."""
+    from . import sys_users_groups as G
+    f = G.canonical(f"plugin:{name}")
+    rule = G._rules(cfg.base or cfg).get(f)
+    return bool(rule["all"]) if rule is not None else G.default(f)
 
 
 def set_for_users(cfg: sys_config.Config, name: str, on: bool) -> None:
-    with _lock:
-        st = choices(cfg)
-        st[name] = bool(on)
-        f = _file(cfg)
-        f.parent.mkdir(parents=True, exist_ok=True)
-        tmp = f.with_suffix(".tmp")
-        tmp.write_text(json.dumps(st, indent=1), encoding="utf-8")
-        os.replace(tmp, f)
+    """The Plugins page's «👥 anche per gli altri utenti»: «Tutti» on or off for the plugin's feature, the users and
+    groups chosen there kept."""
+    from . import sys_users_groups as G
+    base = cfg.base or cfg
+    f = G.canonical(f"plugin:{name}")
+    rule = G._rules(base).get(f) or {"users": [], "groups": []}
+    G.set_access(base, f, bool(on), list(rule.get("users") or []), list(rule.get("groups") or []))
 
 
 class UserPluginHost(PluginHost):
     """A user's host: the admin's plugins are there, switched off for them (listed as not theirs, never called)."""
 
     def plugins(self, with_tools: bool = True):
-        st = choices(self.cfg)
-        allowed = lambda n: st.get(n, n in FOR_USERS)  # noqa: E731
+        from . import sys_users_groups as G         # N167: the one rule (👥 Utenti → Accessi), by user and group
+        base = self.cfg.base or self.cfg
+        from .sys_users import Users
+        admin = Users(base).admin_name()
+        who = self.cfg.user                         # a host for no one in particular: what every user may
+        allowed = (lambda n: G.may_use(base, who, G.of_plugin(n), admin)) if who else (lambda n: for_users(base, n))  # noqa: E731
         out = super().plugins(with_tools=False)
         for p in out:
             if not allowed(p.name):

@@ -13,7 +13,7 @@ const ICON = { high: "🔴", medium: "🟠", low: "🟡" };
 
 export default {
   id: "ciso",
-  icon: "🧭",
+  icon: "🎖️",
   title: "nav.sec.ciso",
   needs: "firewall",                  // in the menu once a firewall is connected (🔌 Firewall)
 

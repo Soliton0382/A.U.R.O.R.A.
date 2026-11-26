@@ -3,10 +3,14 @@
 // DOM helpers shared by every module. Server data always goes in as text, never as HTML.
 export const $ = (id) => document.getElementById(id);
 
-export function el(tag, cls, text) {
+// el(tag, cls, text): a text as before. C753: an element given in its place, or more after it, is appended — it used
+// to become «[object HTMLButtonElement]» and the rest was lost
+export function el(tag, cls, text, ...more) {
   const e = document.createElement(tag);
   if (cls) e.className = cls;
-  if (text !== undefined && text !== null) e.textContent = text;
+  if (typeof Node !== "undefined" && text instanceof Node) e.append(text);   // a test's Node.js has no DOM Node
+  else if (text !== undefined && text !== null) e.textContent = text;
+  for (const k of more) if (k !== undefined && k !== null && k !== false) e.append(k);
   return e;
 }
 

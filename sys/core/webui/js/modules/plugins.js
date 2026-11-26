@@ -147,7 +147,22 @@ const view = {
       box.append(row);
       this.grid.after(box);
     }
-    this.grid.replaceChildren(...plugins.map((p) => {
+    // N165 F5 (owner, 27 Nov): two tabs — 🔗 the connectors (the services outside: messages, storage, accounts) and
+    // 🧰 the tools (what Aurora does here); a forged plugin of another kind goes with the tools
+    const KINDS = [["connector", "🔗", "plug.k.connector"], ["tool", "🧰", "plug.k.tool"]];
+    const kindOf = (p) => (p.kind === "connector" ? "connector" : "tool");
+    this.kind = this.kind || "connector";
+    this.root.querySelector(".plug-kinds")?.remove();
+    const tabs = el("div", "prj-tabs plug-kinds");
+    for (const [k, icon, label] of KINDS) {
+      const n = plugins.filter((p) => kindOf(p) === k).length;
+      const b = el("button", `cat-chip${k === this.kind ? " on" : ""}`, `${icon} ${t(label)} · ${n}`);
+      b.type = "button";
+      b.addEventListener("click", () => { this.kind = k; this.enter(); });
+      tabs.append(b);
+    }
+    this.grid.before(tabs);
+    this.grid.replaceChildren(...plugins.filter((p) => kindOf(p) === this.kind).map((p) => {
       const b = el("button", `plug-tile ${p.available ? "on" : "off"}`);
       b.type = "button";
       const img = el("img");
@@ -268,10 +283,10 @@ const view = {
     }
     if (this.me.admin && p.forged) dlg.append(el("p", "muted", t("plug.forged", { need: p.forged_need || "" })));
     if (this.me.admin && p.unsigned) dlg.append(await signBox([p.name]));
-    if (p.name === "backup") {                      // the backup itself: last copy, next one, 💾 Run now
-      const { backupRow, restoreBox } = await import("../backup.js");
-      const row = await backupRow();
-      if (row) dlg.append(row, restoreBox());
+    if (p.page && document.getElementById(`view-${p.page}`)?.classList.contains("hidden")) {   // N165 F5: its page holds it, not shown now
+      const go = el("button", "", `↗️ ${t("plug.go_page")}`);
+      go.addEventListener("click", () => { dlg.close(); dlg.remove(); bus.emit("show", { id: p.page }); });
+      dlg.append(el("div", "appr-actions", go));
     }
 
     // guide and official links

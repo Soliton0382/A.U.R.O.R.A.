@@ -5900,3 +5900,85 @@ constants, network refused, its folder gone after. The pre-Aurora script (papers
 (sha256 checked): a uniform 10 T in 10 cm gives h00(0) = 4.124e-38 against the exact 4.131e-38 (0.17 %); the
 script's own field 5.9e-38 at most, 16 orders below what LIGO measures. Not measured: whether the chat's models call
 `compute` when they should (the next measure).
+
+## M344 — `compute` in the chat: 20 computations right out of 20 (27 November 2026)
+
+Against frozen predictions (docs/local, sha256 checked), 25 invented questions through the real API (remember:false,
+tools:true), local model, after C750's short path: 20 computations (powers, an LC resonance, roots, integrals,
+derivatives, statistics, photon energy, a pendulum, compound interest, escape velocity, de Broglie, a determinant, the
+first prime after 10⁶, carbon-14 decay…) all routed to the short path and all right within the stated tolerance;
+median 4.3 s, at most 16.8 s (predicted 20–90 s: wrong, much faster); 5 knowledge questions («cos'è un integrale?»)
+none sent to the computation, answered by the vault in 22–29 s. Declared: the first automatic judgement said 6/20
+because of my number reader (a decimal point read as a thousands separator, the code counted with the answer); the
+criterion stayed, the reader was fixed and the same saved answers judged again. Before C750's fix, the first probe
+showed the agent stopping at step 0 with the cloud out. Not measured: the same questions without the tool (the
+model's own arithmetic), harder multi-step problems, /fem from the chat.
+
+
+## M345 — Evidentia public inside Aurora, installed and switched (27 November 2026)
+
+Before the move, on the owner's archive (read only): 20,000 documents drawn at random, their keys from the new
+configurable collections (docids.json) against the old code: 0 different. Root's venv built offline from the
+wheelhouse, every one of 64 wheels checked against its SHA-256 (CPU torch, 1.4 GB on disk); the query embeddings of
+the new environment against the old one on the CPU: maximum difference per component 0, cosines 1.0000000 (5
+queries). An AI security review of the add-on found two high issues (the wheel lock read from the writable repository;
+a new archive inside Aurora's tree) and one medium (the agent's steps in Aurora's trace files): fixed before
+installing (the lock from root's signed copy, wheels copied by root, binaries only; a new archive under
+/var/lib/evidentia/<user>, made without following a link, ACLs cleared; Evidentia's runs traced only in the case
+file's own chained trail). The first install stopped as designed (the old .env relied on its schema's defaults), the
+installer then took them from the old schema. Switched: the service runs root's copy with root's venv; through
+Aurora the add-on serves its page, the status (4,051,031 passages, 1,403,620 documents with text), the collections
+(the EFTA one: 1,370,344 documents) and a search in 0.1 s; the plugin «evidentia» available once the socket left
+/run (Aurora's plugin sandbox never binds /run, C420); a case trail verifies (0 lines) and the page cannot write it
+(404). Not measured: a full investigation run through the dedicated chat with its trail written and verified.
+
+
+## M346 — The owner's 96 GB archive «dataset9-more-complete» against the corpus (27 November 2026)
+
+Read only, by name, size and hash. 531,282 PDFs in the folder: 531,282 already in the corpus by name, 531,282 of the
+same size, the SHA-256 equal on 300 drawn at random (300 of 300). Its load file (VOL00009.OPT) lists 1,223,757 pages
+of 531,307 files: 25 named there are neither in the folder nor in the corpus. Verdict: nothing new to read in; the 25
+to look at again once the owner's extraction has finished. Not measured: the SHA-256 of all 531,282.
+
+## M347 — Scanned pages inside the PDFs never read (C751) (27 November 2026)
+
+On the corpus, read only: 33,276 image files read by OCR (92 with fewer than 20 characters); of the PDFs, pages with
+≤ 20 characters: 76,149 of 105,369 in «scan» documents, 59,509 of 486,909 in «mixed» ones, 0 in «text» ones — 135,658
+pages never searchable. The `images` table (a picture's category) has 0 rows. A sample of 30 of those pages OCR'd by
+hand (300 dpi, grey, Tesseract, text not kept): 6 with text, median 1.3 s a page, at most 18.6 s. The run on all of
+them (10 workers, nice 5, while Evidentia's first backup and the owner's copy to the NAS ran): after 1,500 pages, 270
+with text (18 %), 0 failed, 1.8 pages a second. Not measured: the whole run, its rate with the disk free, how much of
+the new text the search then finds.
+
+## M348 — Evidentia's first backup and C752 (27 November 2026)
+
+The installer wrote the backup's keys into Evidentia's settings; Evidentia refuses a key its schema does not describe
+and its service did not start: 471 restarts counted by systemd before the fix, 0 after (the keys in the schema). The
+first backup run (root, nice 10, I/O idle) on a 24 GB archive (corpus.db 9.7 GB, vectors 5.9 GB, findings.db 0.36 GB):
+still running after 35 minutes at 100 % of one CPU, peak memory 6.6 GB; it ended after 3 h 28 min, 45 files, 17.0 GB, ok
+(M349). Not measured: its size on the NAS (root's folder), the second run (which with the fix copies an unchanged
+database no more).
+
+## M349 — The backup's list of copies, before and after C755 (27 November 2026)
+
+GET /v1/aurora/backup/snapshots on the owner's NAS, 10 copies of about 82,700 files each: 442.9 s with the parts
+counted as before (each file's folders resolved again), 2.2 s after (the folders once per installation), the same 10
+copies. On 82,000 invented paths, the count alone: 22.5 s before, 0.1 s after. Evidentia's first backup (M348) ended
+in 3 h 28 min: 45 files, 17.0 GB read, ok. Not measured: the list while the NAS is busy with another copy.
+
+## M350 — The harvester's «spinta», 24 hours after it (27 November 2026)
+
+Predictions frozen on 26 Nov before the change (SHA-256 kept, checked again before measuring): more physics, mathematics,
+medicine and psychology («exhaust»), a disk floor of 100 GB. Counted from the harvester's log in the 24 hours after it:
+
+| # | prediction | measured | verdict |
+|---|---|---|---|
+| H1 | 3,000–15,000 documents (success ≥ 2,000) | 5,317 (6.9× the base of 767) | ✅ |
+| H2 | ≥ 60 % from the four domains (success ≥ 50 %) | 93.8 % (medicine 2,093, psychology 1,119, mathematics 1,087, physics 686) | ✅ |
+| H3 | psychology ≥ 200 (success ≥ 100) | 1,119 | ✅ |
+| H4 | the vault ≤ 2 GB a day, > 300 GB free | 12 → 13 GB; 323 GB free | ✅ |
+| H5 | ≤ 5 % warnings a document (success ≤ 10 %) | 0.4 % (20 lines) | ✅ |
+| H6 | the chat's median latency ≤ +30 % (success ≤ +50 %), 5 invented questions, remember false | 16.77 → 26.59 s, +59 % | ❌ |
+
+H6 failed as measured; one thing was not as on 26 Nov: the OCR of C751 ran with 10 processes (nice 5) while the chat was
+measured. Not measured: the latency with the OCR ended, which part of the +59 % is the harvester's.

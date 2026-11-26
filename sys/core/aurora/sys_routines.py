@@ -363,10 +363,13 @@ def from_suggestion(cfg: sys_config.Config, plugins: list, sid: str, lang: str =
 
 
 def newly_ready(cfg: sys_config.Config, plugins: list) -> list:
-    """Plugins ready now that were not ready at the last look (their welcome is said once)."""
+    """Plugins ready for the first time (their welcome is said once). C756: the file kept only those ready at the last
+    look, so a plugin away for a moment (the API restarting, the NAS slow) was welcomed again when it came back — the
+    configured backup said «pronto da configurare» on 27 Nov. Now every plugin once ready stays known."""
     known = set(_load(cfg, "plugins_ready.json", []))
     ready = {p.name for p in plugins if p.available}
-    _save(cfg, "plugins_ready.json", sorted(ready))
+    if ready - known:
+        _save(cfg, "plugins_ready.json", sorted(known | ready))
     return [p for p in plugins if p.name in ready - known and p.manifest.get("welcome")]
 
 

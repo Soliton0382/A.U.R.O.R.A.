@@ -354,7 +354,7 @@ def verify(cfg: sys_config.Config | None = None, sample: int | None = None) -> i
 
 
 def restore(cfg: sys_config.Config, into: Path, snapshot: str = "latest", prefix: str = "", code: str = "",
-            parts: tuple[str, ...] = ()) -> dict:
+            parts: tuple[str, ...] = (), users: tuple[str, ...] = ()) -> dict:
     """Write a snapshot's files into an empty folder (never over the live installation). `code`: the recovery code,
     when the key file is lost with the disk. `parts`: only these (sys_backup_parts)."""
     into, root = Path(os.path.abspath(into)), cfg.root.resolve()    # C592: as written, never through a link at it
@@ -374,7 +374,7 @@ def restore(cfg: sys_config.Config, into: Path, snapshot: str = "latest", prefix
     data, n, size = read_snapshot(snap, enc), 0, 0
     top = _empty_folder(into, root if inside else None)   # C579: every write from this folder's fd
     try:
-        n, size = _restore_files(data, top, into, dest, enc, idkey, prefix, parts, cfg)
+        n, size = _restore_files(data, top, into, dest, enc, idkey, prefix, parts, cfg, users)
     finally:
         os.close(top)
     return {"snapshot": snap.stem, "files": n, "bytes": size, "into": str(into)}
@@ -428,11 +428,12 @@ def _open_under(top: int, rel: str) -> int:
         os.close(fd)
 
 
-def _restore_files(data, top, into, dest, enc, idkey, prefix, parts, cfg) -> tuple[int, int]:
+def _restore_files(data, top, into, dest, enc, idkey, prefix, parts, cfg, users=()) -> tuple[int, int]:
     from . import sys_backup_parts
     n = size = 0
     for rel, sz, mtime, mode, bid in data["files"]:
-        if prefix and not rel.startswith(prefix) or parts and sys_backup_parts.part_of(cfg, rel) not in parts or rel.endswith(OWN_KEY):
+        if prefix and not rel.startswith(prefix) or parts and sys_backup_parts.part_of(cfg, rel) not in parts or rel.endswith(OWN_KEY) \
+                or users and sys_backup_parts.user_of(cfg, rel) not in users:
             continue                                     # (OWN_KEY: in a snapshot made before C491, it stays out)
         h = hmac.new(idkey, digestmod=hashlib.sha256)
 

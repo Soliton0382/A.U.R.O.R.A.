@@ -164,3 +164,10 @@ def _this_installation_for_local_tests(request):
         for name in set(sys.modules) - before:
             if name.startswith("aurora.api"):
                 sys.modules.pop(name, None)
+
+
+@pytest.fixture(autouse=True)
+def _no_installed_addons(tmp_path_factory, monkeypatch):
+    """The tests never see the add-ons installed on the machine running them (27 Nov: Evidentia on the owner's)."""
+    from aurora import sys_addons
+    monkeypatch.setattr(sys_addons, "ETC", tmp_path_factory.mktemp("etc-aurora"))

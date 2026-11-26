@@ -202,4 +202,17 @@ with sys_context.acting_as("guest"):
     except ValueError as e:
         out["guest"]["template_over"] = "refused" if "someone else" in str(e) else str(e)
 out["guest"]["template_kept"] = json.loads((_tpl / "mine-serata.json").read_text())["saved_by"]
+# N165: a feature the admin keeps from a user: refused by the API, hidden in the menu; opened by name, read by its old
+# name too (plugin:calendar is the calendar's feature)
+out["guest"]["feat_before"] = get("guest", "/v1/aurora/calendar").status_code
+out["boss"]["feat_close"] = client.put("/v1/aurora/access/calendar", headers=H["boss"], json={"all": False, "users": [], "groups": []}).status_code
+out["guest"]["feat_closed"] = get("guest", "/v1/aurora/calendar").status_code
+out["boss"]["feat_closed"] = get("boss", "/v1/aurora/calendar").status_code
+out["guest"]["feat_hidden"] = "calendar" in get("guest", "/v1/aurora/me").json()["hidden"]
+out["guest"]["feat_others"] = get("guest", "/v1/aurora/routines").status_code          # another feature: untouched
+out["guest"]["feat_set"] = client.put("/v1/aurora/access/calendar", headers=H["guest"], json={"all": True}).status_code
+out["boss"]["feat_old_name"] = client.put("/v1/aurora/access/plugin:calendar", headers=H["boss"], json={"all": False, "users": ["guest"], "groups": []}).status_code
+out["guest"]["feat_opened"] = get("guest", "/v1/aurora/calendar").status_code
+out["guest"]["feat_shown"] = "calendar" not in get("guest", "/v1/aurora/me").json()["hidden"]
+out["boss"]["feat_rules"] = [a["feature"] for a in get("boss", "/v1/aurora/users/groups").json()["access"] if a["feature"].endswith("calendar")]
 print(json.dumps(out))
