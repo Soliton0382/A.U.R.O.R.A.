@@ -93,7 +93,7 @@ def test_an_image_collection_is_read_by_ocr(tmp_path):
     out = inventory.run(src, tmp_path / "data", 1, exts=inventory.IMAGES, say=lambda *_: None)
     if out["failed"]:                                 # C762: what the CI runner's Tesseract said, in the failure itself
         why = store.connect(tmp_path / "data", "corpus.db").execute("SELECT error FROM documents").fetchall()
-        raise AssertionError(f"OCR of an image failed: {why}")
+        raise AssertionError(f"OCR of an image failed: {[tuple(r) for r in why]}")
     assert out["read"] == 1
     db = store.connect(tmp_path / "data", "corpus.db")
     doc, kind = db.execute("SELECT doc, kind FROM documents").fetchone()

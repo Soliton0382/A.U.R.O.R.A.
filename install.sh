@@ -109,7 +109,8 @@ fi
 # ---------------------------------------------------------------------------------------------------
 step "2. $(t 'Pacchetti di sistema' 'System packages')"
 # bubblewrap: the plugins' cage — without it no plugin runs (C226); it was missing here (C237, the Install run, 9 Oct)
-PKGS="python3-venv python3-dev build-essential cmake git curl ffmpeg poppler-utils caddy libnss3-tools openssl bubblewrap zstd"
+# tesseract-ocr(-eng): Evidentia reads scanned pages and images with it; it was installed by nobody (C762, CI 27 Nov)
+PKGS="python3-venv python3-dev build-essential cmake git curl ffmpeg poppler-utils tesseract-ocr tesseract-ocr-eng caddy libnss3-tools openssl bubblewrap zstd"
 for p in $TPM_LIBS; do apt-cache show "$p" >/dev/null 2>&1 && PKGS="$PKGS $p"; done   # the names this release has
 MISSING=$(for p in $PKGS; do dpkg -s "$p" >/dev/null 2>&1 || echo "$p"; done | tr '\n' ' ')
 if [ -n "${MISSING// /}" ]; then

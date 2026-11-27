@@ -70,7 +70,7 @@ step "2. $(t 'Programmi (Homebrew)' 'Programs (Homebrew)')"
 BREW=$(command -v brew || ls /opt/homebrew/bin/brew /usr/local/bin/brew 2>/dev/null | head -1 || true)
 [ -n "$BREW" ] || die "$(t 'serve Homebrew: installalo da https://brew.sh (un comando nel Terminale) e rilancia' 'Homebrew is needed: install it from https://brew.sh (one command in the Terminal) and run again')"
 eval "$("$BREW" shellenv)"
-for f in python@3.14 caddy ffmpeg-full poppler; do
+for f in python@3.14 caddy ffmpeg-full poppler tesseract; do   # tesseract: Evidentia's OCR (C762)
   if "$BREW" list --formula "$f" >/dev/null 2>&1; then ok "$f"
   else "$BREW" install --quiet "$f" >/dev/null || die "brew install $f"; ok "$f ($(t 'installato' 'installed'))"; fi
 done
