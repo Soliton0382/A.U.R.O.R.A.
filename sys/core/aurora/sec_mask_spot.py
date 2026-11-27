@@ -110,6 +110,8 @@ def spot(cfg: sys_config.Config, text: str) -> tuple[list[str], bool]:
     """(the private values found in `text`, whether the local model answered for every chunk)."""
     if not text or not cfg["AURORA_CLOUD_MASK_DYNAMIC"]:
         return [], True
+    if str(cfg["AURORA_LLM_BACKEND"]) == "cloud":        # C761: no local model on this machine, none will ever look:
+        return sorted({m.group(0) for rx in LAST_RESORT for m in rx.finditer(text)}, key=len, reverse=True), True
     found, told, whole = [], [], True
     for i in range(0, len(text), CHUNK):
         chunk = text[i:i + CHUNK]

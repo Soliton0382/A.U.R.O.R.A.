@@ -66,3 +66,13 @@ def test_the_owner_s_choice_without_the_dynamic_look_is_kept(quick, monkeypatch)
     cloud = Cloud()
     R.MaskedLLM(cloud, "reasoner", quick).complete("sys", "una frase qualsiasi", 100)
     assert cloud.sent == ["una frase qualsiasi"]
+
+
+def test_a_machine_without_a_local_model_masks_by_the_fixed_rules_and_answers(quick, monkeypatch):
+    """C761 (the Mac install's CI, 27 Nov): AURORA_LLM_BACKEND=cloud has no local model to look, ever — every cloud
+    question waited a minute and was refused. There the fixed rules mask, as before C746, and the answer comes."""
+    quick.values["AURORA_LLM_BACKEND"] = "cloud"
+    monkeypatch.setattr(sec_mask_spot, "_ask", lambda cfg, chunk: pytest.fail("no local model to ask"))
+    cloud = Cloud()
+    out = R.MaskedLLM(cloud, "reasoner", quick).complete("sys", "scrivi a mario.rossi@example.com", 100)
+    assert out.answer == "ok" and cloud.sent and "mario.rossi@example.com" not in cloud.sent[0]

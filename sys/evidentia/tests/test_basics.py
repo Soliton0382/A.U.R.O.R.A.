@@ -91,7 +91,10 @@ def test_an_image_collection_is_read_by_ocr(tmp_path):
     pdf = make_pdf(tmp_path / "x.pdf", ["FLIGHT MANIFEST DEPARTURE TETERBORO ARRIVAL PALM BEACH"])
     subprocess.run(["pdftoppm", "-png", "-r", "200", "-singlefile", str(pdf), str(src / "REL-OGR-00000042")], check=True)
     out = inventory.run(src, tmp_path / "data", 1, exts=inventory.IMAGES, say=lambda *_: None)
-    assert out["read"] == 1 and out["failed"] == 0
+    if out["failed"]:                                 # C762: what the CI runner's Tesseract said, in the failure itself
+        why = store.connect(tmp_path / "data", "corpus.db").execute("SELECT error FROM documents").fetchall()
+        raise AssertionError(f"OCR of an image failed: {why}")
+    assert out["read"] == 1
     db = store.connect(tmp_path / "data", "corpus.db")
     doc, kind = db.execute("SELECT doc, kind FROM documents").fetchone()
     text, source = db.execute("SELECT text, source FROM pages").fetchone()

@@ -2,6 +2,12 @@
 
 Each version is a signed tag; its notes are the publications since the one before (newest first). Numbers and proofs: docs/MEASUREMENTS.md, docs/BUGS.md.
 
+## v0.3.57 — 2026-11-27
+
+1 publications since v0.3.56.
+
+- 2026-11-27 C761: cloud-only machines answer again; C762 diagnostics
+
 ## v0.3.56 — 2026-11-27
 
 2 publications since v0.3.54.
