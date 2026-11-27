@@ -510,3 +510,19 @@ Each request names its user (X-Evidentia-User), set by Aurora's side only — th
 controls Aurora's account can name any user, as she could already reach every route; the per-user separation protects
 the users from each other through the WebUI and the chat, not from Aurora's own account. A user's own NAS folder
 (N168) is mounted by root from one strict request, read only, the password in root's credentials file.
+
+
+## A text the local model could not look at (C746, 27 Nov)
+
+The owner's choice, «chiuso con attesa»: before any text leaves for a cloud model the local model looks at it for
+personal data the fixed rules cannot see; when it cannot (the GPU busy, the model restarting) the call waits up to 60 s
+for it, then the text is not sent — the local model answers in its place. The price, declared: while the local model
+is down a cloud step waits and then runs locally, slower.
+
+
+## Revocations that hold, and the app built only as signed (C741, C749, 27 Nov)
+
+The level B exemption and the private-cloud consent carry root's revocation number (/etc/aurora/revocations.json),
+signed into their message: `sudo aurora-root revoke` raises it, and a copy put back by Aurora's account no longer
+verifies. The phone app is built only from the owner's signed sources, with tools and a key nobody else may write
+(sys/app/build.py refuses otherwise): a misled Aurora can neither change the app nor a program of its build.

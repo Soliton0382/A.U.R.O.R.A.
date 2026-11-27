@@ -449,6 +449,17 @@ def cloud_live(window: float = 60.0) -> dict:
             "providers": sorted({r[1] for r in last})}
 
 
+# C746 (owner, 27 Nov: «chiuso con attesa»): a text the local model could not look at never leaves — the look tried
+# again for up to MASK_WAIT_S (the GPU busy, the model restarting), then MaskUnseen: Fallback hands the step to the
+# local model, any other caller says why it waits. Only the dynamic look counts: off (AURORA_CLOUD_MASK_DYNAMIC false),
+# the fixed rules alone, as the owner set it.
+MASK_WAIT_S, MASK_STEP_S = 60.0, 10.0
+
+
+class MaskUnseen(RuntimeError):
+    """The local model could not look at this text for personal data: it is not sent to a cloud model."""
+
+
 class MaskedLLM:
     """A cloud model seen through the Pseudonymizer: what leaves is masked, what comes back unmasked."""
 
@@ -460,6 +471,24 @@ class MaskedLLM:
 
     def _p(self) -> Pseudonymizer:
         return Pseudonymizer(self.cfg)
+
+    def _looked(self, make):
+        """make(p) masks this call's texts with a fresh Pseudonymizer p; the pair once the local model looked at all
+        of it, else MaskUnseen after MASK_WAIT_S (C746)."""
+        t0 = time.monotonic()
+        while True:
+            p = self._p()
+            out = make(p)
+            if not getattr(p, "unseen", False):
+                return p, out
+            waited = time.monotonic() - t0
+            if waited >= MASK_WAIT_S:
+                sys_log.get_logger("security").warning("C746: the local model could not look at a text for %s "
+                                                       "(%.0f s): not sent to the cloud", self.role, waited)
+                sys_log.trace("llm_client", "cloud.unseen", {"role": self.role, "provider": self.name, "seconds": round(waited)})
+                raise MaskUnseen("the local model could not check this text for personal data: it does not go to "
+                                 "the cloud (C746)")
+            time.sleep(min(MASK_STEP_S, max(0.0, MASK_WAIT_S - waited)))
 
     def _named(self, system: str) -> str:
         """The names put into the prompt BEFORE masking (C132): filled after it, by the provider's client, the owner's
@@ -477,8 +506,7 @@ class MaskedLLM:
         return system + KEEP if p.counts else system
 
     def complete(self, system: str, user: str, max_tokens: int, think: bool = False) -> Completion:
-        p = self._p()
-        ms, mu = p.mask(self._named(system)), p.mask(user)
+        p, (ms, mu) = self._looked(lambda p: (p.mask(self._named(system)), p.mask(user)))
         with _cloud_call(self.name, len(ms) + len(mu)) as cc:
             c = self.inner.complete(self._keep(p, ms), mu, max_tokens, think)
             cc.got = len(c.answer or "") + len(c.thought or "")
@@ -486,9 +514,8 @@ class MaskedLLM:
         return Completion(p.unmask(c.answer), p.unmask(c.thought), c.tokens, c.seconds, c.truncated)
 
     def complete_turns(self, messages: list[dict], max_tokens: int, think: bool = False) -> Completion:
-        p = self._p()
-        masked = [{**m, "content": p.mask(self._named(m["content"]) if m.get("role") == "system" else m["content"])}
-                  for m in messages]
+        p, masked = self._looked(lambda p: [{**m, "content": p.mask(self._named(m["content"]) if m.get("role") == "system"
+                                                                    else m["content"])} for m in messages])
         if p.counts:                                     # keep the placeholders (C86): told in the system message
             i = next((n for n, m in enumerate(masked) if m.get("role") == "system" and isinstance(m["content"], str)), None)
             if i is None:
@@ -502,8 +529,7 @@ class MaskedLLM:
         return Completion(p.unmask(c.answer), p.unmask(c.thought), c.tokens, c.seconds, c.truncated)
 
     def stream(self, system: str, user: str, max_tokens: int, think: bool = False) -> Iterator[tuple[str, str]]:
-        p = self._p()
-        ms, mu = p.mask(self._named(system)), p.mask(user)
+        p, (ms, mu) = self._looked(lambda p: (p.mask(self._named(system)), p.mask(user)))
         with _cloud_call(self.name, len(ms) + len(mu)) as cc:
             for piece in p.unmask_stream(self.inner.stream(self._keep(p, ms), mu, max_tokens, think)):
                 cc.got += len(piece[1] if isinstance(piece, tuple) else piece)
@@ -512,17 +538,17 @@ class MaskedLLM:
         self._note(p)
 
     def see(self, jpeg: bytes, instruction: str, max_tokens: int = 700) -> str:
-        p = self._p()
+        p, mi = self._looked(lambda p: p.mask(instruction))
         with _cloud_call(self.name, len(jpeg) + len(instruction)) as cc:
-            out = self.inner.see(jpeg, p.mask(instruction), max_tokens)    # the picture itself cannot be masked
+            out = self.inner.see(jpeg, mi, max_tokens)    # the picture itself cannot be masked
             cc.got = len(out or "")
         self._note(p, images=1)
         return p.unmask(out)
 
     def see_many(self, frames: list[tuple[str, bytes]], instruction: str, max_tokens: int = 1600) -> str:
-        p = self._p()
+        p, mi = self._looked(lambda p: p.mask(instruction))
         with _cloud_call(self.name, sum(len(f[1]) for f in frames) + len(instruction)) as cc:
-            out = self.inner.see_many(frames, p.mask(instruction), max_tokens)
+            out = self.inner.see_many(frames, mi, max_tokens)
             cc.got = len(out or "")
         self._note(p, images=len(frames))
         return p.unmask(out)

@@ -171,3 +171,11 @@ def _no_installed_addons(tmp_path_factory, monkeypatch):
     """The tests never see the add-ons installed on the machine running them (27 Nov: Evidentia on the owner's)."""
     from aurora import sys_addons
     monkeypatch.setattr(sys_addons, "ETC", tmp_path_factory.mktemp("etc-aurora"))
+
+
+@pytest.fixture(autouse=True)
+def _local_model_looks(monkeypatch):
+    """C746: a text goes to a cloud model only once the local model looked at it. Tests have no local model: here it
+    looks and finds nothing private (the fixed rules still apply); a test about the look itself sets its own _ask."""
+    from aurora import sec_mask_spot
+    monkeypatch.setattr(sec_mask_spot, "_ask", lambda cfg, chunk: [])

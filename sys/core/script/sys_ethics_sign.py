@@ -86,7 +86,9 @@ def keygen(private: Path, rotate: bool) -> None:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("action", choices=["setup", "keygen", "sign", "exempt", "private-cloud", "check", "verify-key"])
+    ap.add_argument("action", choices=["setup", "keygen", "sign", "exempt", "private-cloud", "check", "verify-key", "revoke"])
+    ap.add_argument("--what", choices=["exemption", "private-cloud"], default="exemption",
+                    help="revoke: which signature (C741: every copy made before stops counting)")
     ap.add_argument("--key", type=Path, default=sys_ethics.PRIVATE_KEY, help="the private key (PEM)")
     ap.add_argument("--rotate", action="store_true", help="keygen: replace an existing key pair (kept aside)")
     ap.add_argument("--exempt", action="store_true", help="setup: also exempt this installation from level B")
@@ -98,6 +100,20 @@ def main() -> int:
     if (args.action != "check" and getattr(os, "geteuid", lambda: 1)() == 0 and not Path(__file__).resolve().is_relative_to(lib)
             and not os.environ.get("AURORA_ROOT_LAUNCHER") and Path("/usr/local/sbin/aurora-root").exists()):
         ap.error(f"usa: sudo aurora-root {args.action} (root non esegue il codice dalla cartella di Aurora)")
+    if args.action == "revoke":                     # C741: root only, no private key needed — the number goes up
+        if getattr(os, "geteuid", lambda: 1)() != 0:
+            ap.error("revoke: run it as root (sudo aurora-root revoke [--what private-cloud])")
+        cfg = sys_config.get()
+        what = "private_cloud" if args.what == "private-cloud" else "exemption"
+        n = sys_ethics.revoke(what)
+        target = cfg.path("AURORA_ETHICS_EXEMPTION")
+        if what == "private_cloud":
+            from aurora import sys_cloud_consent
+            target = sys_cloud_consent.path(cfg)
+        if target.is_file() and not target.is_symlink():
+            target.unlink()
+        print(f"{args.what} revoked (number {n}): every copy signed before no longer counts; sign again to grant it")
+        return 0
     if args.action == "check":
         ok, reason = sys_ethics.integrity()
         print(("OK: " if ok else "FAILED: ") + reason)

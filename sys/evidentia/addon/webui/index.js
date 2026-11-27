@@ -8,8 +8,9 @@ import evidentia from "./evidentia.js";
 import { agentsPage, archivesPage, routinesPage, serverPage } from "./evidentia_pages.js";
 import evdCases from "./evidentia_cases.js";
 import evdNet from "./evidentia_net.js";
+import evdMoney from "./evidentia_money.js";
 
 extend(await (await fetch("/static/addons/evidentia/strings.json")).json());
-export const views = [archivesPage, serverPage, evdCases, evidentia, evdNet, agentsPage, routinesPage];
+export const views = [archivesPage, serverPage, evdCases, evidentia, evdNet, evdMoney, agentsPage, routinesPage];
 export const groups = [{ id: "evidentia", icon: "🕵️", title: "nav.g.evidentia",
-  views: ["evd_archives", "evd_server", "evd_cases", "evidentia", "evd_net", "evd_agents", "evd_routines"] }];
+  views: ["evd_archives", "evd_server", "evd_cases", "evidentia", "evd_net", "evd_money", "evd_agents", "evd_routines"] }];

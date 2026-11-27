@@ -138,3 +138,31 @@ def test_without_a_trusted_key_nothing_is_intact_or_exempt(cfg, signed, monkeypa
     ex.write_text(key.sign(sys_ethics.exemption_message(cfg.root)).hex())
     sys_ethics._exempt_cached.cache_clear()
     assert not sys_ethics.exempt(cfg)
+
+
+def test_a_revoked_exemption_put_back_no_longer_counts(cfg, tmp_path, monkeypatch):
+    """C741: the exemption carries root's revocation number; revoking raises it in /etc/aurora (here a test file),
+    so the old signed copy the service's account could put back no longer verifies. The ones of before (number 0)
+    keep the message they were signed on."""
+    from cryptography.hazmat.primitives import serialization
+    key = Ed25519PrivateKey.generate()
+    pub = key.public_key().public_bytes(serialization.Encoding.Raw, serialization.PublicFormat.Raw).hex()
+    monkeypatch.setattr(sys_ethics, "owner_public_key", lambda path=None: (pub, ""))
+    monkeypatch.setattr(sys_ethics, "REVOCATIONS", tmp_path / "revocations.json")
+    ex = cfg.path("AURORA_ETHICS_EXEMPTION")
+    ex.parent.mkdir(parents=True, exist_ok=True)
+    old = key.sign(sys_ethics.exemption_message(cfg.root)).hex()
+    assert sys_ethics.exemption_message(cfg.root).endswith(str(cfg.root).encode())          # number 0: as before
+    ex.write_text(old)
+    assert sys_ethics.exempt(cfg) is True
+    assert sys_ethics.revoke("exemption") == 1
+    ex.write_text(old)                                                   # the service's account puts the copy back
+    assert sys_ethics.exempt(cfg) is False
+    ex.write_text(key.sign(sys_ethics.exemption_message(cfg.root)).hex())   # signed again by the owner: it holds
+    assert sys_ethics.exempt(cfg) is True
+    from aurora import sys_cloud_consent
+    c = sys_cloud_consent.path(cfg)
+    c.write_text(key.sign(sys_cloud_consent.message(cfg.root)).hex())
+    assert sys_cloud_consent.signed(cfg) is True
+    sys_ethics.revoke("private_cloud")
+    assert sys_cloud_consent.signed(cfg) is False                        # the cloud consent the same way

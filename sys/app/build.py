@@ -101,9 +101,52 @@ def brain(res: Path) -> None:
     (res / "drawable" / "brain.xml").write_text("\n".join(out + ["</vector>"]) + "\n", encoding="utf-8")
 
 
+def trusted() -> list[str]:
+    """C749: what must hold before the app is built and signed with the real key, or the build stops saying it —
+    an Aurora misled could otherwise change the app or its tools and wait for the owner's next build:
+      - every source of the app (this file, android/**) is the owner's signed one (sys/core/ethics/MANIFEST.json);
+      - the tools (the JDK, the SDK) and the key are the builder's own, and nobody else may write them or their folders
+        (Aurora's group could replace a program the build runs)."""
+    problems = []
+    sys.path.insert(0, str(ROOT.parent / "core"))
+    try:
+        from aurora import sys_ethics
+        import json as _json
+        repo = ROOT.parents[1]
+        m = _json.loads((repo / sys_ethics.MANIFEST).read_text(encoding="utf-8"))
+        code = m.get("code") or {}
+        pub, _ = sys_ethics.owner_public_key()
+        if not pub or not sys_ethics._verify(sys_ethics._canonical(code), m.get("code_signature", ""), pub):
+            problems.append("the code's signature does not verify: sudo aurora-root sign")
+        for f in [ROOT / "build.py", *sorted(p for p in APP.rglob("*") if p.is_file())]:
+            rel = f.relative_to(repo).as_posix()
+            if code.get(rel) != sys_ethics._sha(f):
+                problems.append(f"{rel} is not the signed one: look at it, then sudo aurora-root sign")
+    except (OSError, ValueError, ImportError) as e:
+        problems.append(f"the code's signature cannot be read ({type(e).__name__}): sudo aurora-root sign")
+    me = os.getuid()
+    for top in (TOOLS / "jdk", TOOLS / "sdk", KEYS):
+        if not top.exists():
+            continue
+        for d, dirs, files in os.walk(top):
+            for p in [Path(d), *(Path(d) / f for f in files)]:
+                st = p.lstat()
+                if st.st_uid != me or st.st_mode & 0o022 or (top == KEYS and st.st_mode & 0o077 and p.is_file()):
+                    problems.append(f"{top.relative_to(ROOT)} is writable by others or not yours: "
+                                    f"chmod -R go-w {TOOLS} && chmod 700 {KEYS} && chmod 600 {KEYS}/*")
+                    break
+            else:
+                continue
+            break
+    return problems
+
+
 def build() -> Path:
     if missing():
         raise RuntimeError(f"tools missing: {', '.join(missing())}")
+    bad = trusted()
+    if bad:
+        raise RuntimeError("C749, not built:\n  " + "\n  ".join(dict.fromkeys(bad)))
     work = OUT / "work"
     shutil.rmtree(work, ignore_errors=True)
     (work / "gen").mkdir(parents=True)

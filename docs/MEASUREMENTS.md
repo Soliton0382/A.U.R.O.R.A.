@@ -5982,3 +5982,18 @@ medicine and psychology («exhaust»), a disk floor of 100 GB. Counted from the 
 
 H6 failed as measured; one thing was not as on 26 Nov: the OCR of C751 ran with 10 processes (nice 5) while the chat was
 measured. Not measured: the latency with the OCR ended, which part of the +59 % is the harvester's.
+
+## M351 — 💰 Segui i soldi, the first full run (N171, C759) (27 November 2026)
+
+Measured on the owner's archive, while the OCR of C751 ran (10 processes):
+
+| quantity | measured |
+|---|---|
+| money pages (an account, ABA, BIC or IBAN found by the inventory) | 21,715 in the archive's documents |
+| names and accounts kept (after merging the OCR's spellings of one company) | 5,854 |
+| ties (two things on the same pages, each with its pages) | 15,081 |
+| time | 7.8 s |
+| the first try, writing into findings.db during the OCR | refused at once twice («database is locked»): C759 |
+
+What a tie is: co-occurrence on a page, not a transfer. Not measured: how many ties are real transfers (needs reading
+a sample of pages by hand), the fields missed on pages whose OCR is poor, the precision of the signer/company split.

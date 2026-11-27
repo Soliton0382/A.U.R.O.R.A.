@@ -121,6 +121,16 @@ try {
     const b = new N("div");
     await page.drawCase(b, "bbbbbbbbbbbb");                         // its members: refused (shared with me)
     out.theirs = show(b);
+  } else if (scene === "money") {
+    globalThis.FIX = { "GET /v1/aurora/evidentia/money": { pages: 21715, nodes: 5854, ties: 15081, at: 1, running: false,
+      banks: [{ name: "EXAMPLE BANK", pages: 12, see: [["X:1", 2]] }], orgs: [{ name: "GOTHAM HOLDINGS LLC", pages: 5, see: [["X:1", 3]] }],
+      org_shared: [{ a: "GOTHAM HOLDINGS LLC", b: "METRO TRUST", accounts: 2, see: [] }], hubs: [], accounts: [{ kind: "account", account: "…2222", pages: 4, see: [] }],
+      people: [] } };
+    const page = (await import(`${folder}/evd/evidentia_money.js`)).default;
+    const root = new N("section");
+    page.mount(root);
+    await page.enter();
+    out.money = show(root);
   } else if (scene === "line") {
     // C758: a window with notifications and no Web Push (Aurora Desktop): the line's events become Notifications
     const shown = [];

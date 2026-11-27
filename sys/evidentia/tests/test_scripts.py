@@ -199,7 +199,10 @@ def test_systemd_reads_the_quoted_unit_back(tmp_path):
     unit.write_text(root.unit_text(proj), encoding="utf-8")
     r = subprocess.run(["systemd-analyze", "verify", "--man=no", "--generators=no", str(unit)],
                        capture_output=True, text=True, timeout=60)
-    assert r.returncode == 0 and not r.stderr.strip(), r.stderr   # the old text: «Command /…/my is not executable»,
+    # only what concerns this unit: systemd-analyze also reads the system's own units on the way, and a newer systemd
+    # warns about theirs (CI, 27 Nov: «scrub_all.service:26: Support for option CPUAccounting= has been removed»)
+    ours = [l for l in r.stderr.splitlines() if unit.name in l or str(proj) in l or "my proj" in l]
+    assert r.returncode == 0 and not ours, r.stderr                # the old text: «Command /…/my is not executable»,
     # «BindPaths= path is not absolute, ignoring: proj 100%/sys/data» (seen 11 Nov on the unquoted form)
 
 

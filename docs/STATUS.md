@@ -1,6 +1,6 @@
 # Status — work in progress
 
-Updated at every validated change (last: 2026-11-27; audited against the code on 2026-10-28). Details: BUGS.md (issues, 7 open / 740 closed),
+Updated at every validated change (last: 2026-11-27; audited against the code on 2026-10-28). Details: BUGS.md (issues, 3 open / 744 closed),
 MANUAL_TESTS.md (what the owner checks by hand),
 TESTS.md (tests and live checks), MEASUREMENTS.md (numbers), MODULE_MAP.md (who does what),
 SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSYSTEM.md (design and decisions).
@@ -150,6 +150,7 @@ SECURITY.md (encryption, ethics, AI Act), COMPATIBILITY.md (tested stack), ECOSY
 | 🧭 the WebUI tidied (N165) | 💻 Sistema and 🗝️ Amministrazione apart; 💬 chat, anonymous chat and interpreter as tabs; 💾 Backup e ripristino a page; one icon per entry; each plugin with a page set up in it; 🧩 Plugin in Connettori and Strumenti | tests test_webui_menu_n165; the owner's look in the browser |
 | 🕵️ Evidentia inside Aurora (N159, N161) | an add-on: its own account, root's venv and signed copy, socket for Aurora; its pages in the WebUI, its plugin in the chat; the case file's chained audit trail; its own encrypted backup beside Aurora's (own key, timer, 🩺 line, restore into an empty folder or in place) | M345; tests test_sys_root_evidentia, test_evidentia_backup, Evidentia's 73; the first backup still running |
 | 🕵️ Evidentia for each user (N166, N168, N170) | its sources on the NAS (the owner's at install, each user's own from the WebUI); an archive per user; case files shared between users; the backup with every archive, restored all or by user | tests test_api (per user, shared), test_sources, test_sys_root_evidentia_nas, test_evidentia_backup, test_webui_runs |
+| 💰 Segui i soldi (N171) | the archive's money pages correlated by themselves (accounts, banks, companies, who ties the most accounts), each with its pages; done again after every folder read in | test_money, test_api (per archive), test_webui_runs (money); M351 |
 | 🔍 OCR of the scanned PDF pages (C751) | 135 658 pages without text, rendered and read by Tesseract, written back as the inventory writes a page; a stopped run goes on | M347; running |
 | bug reports | 🐞 page: description, runs, hours of logs → a zip with private data masked, the list of files and of what was masked, a GitHub issue link | M60 |
 | routine PDFs | an agent routine's report is always also a PDF (C84) | M60 |

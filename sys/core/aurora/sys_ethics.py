@@ -121,6 +121,7 @@ CODE_PATTERNS = ("install.sh", "uninstall.sh", "requirements.txt",
                  "sys/core/config/*",                           # C558: allowed_signers (the updater's trust) has no suffix
                  "sys/plugins/**/*",                            # C558: a plugin's sub-folders too (unsigned_plugins: the same)
                  "sys/evidentia/**/*",                          # Evidentia, the add-on: root's copy runs it (27 Nov)
+                 "sys/app/build.py", "sys/app/android/**/*",    # C749: the phone app's sources, built only as signed
                  ".github/**/*",                                # C558: what CI runs on the published code
                  "sys/deploy/**/*")   # what root installs: aurora-root runs only these files as signed (sys_root, 9 Nov)
 DATA_FILES = ("sys/core/config/shadow_seed.json",)  # rewritten every day by its timer (C401): data, not code
@@ -275,12 +276,47 @@ def machine_id() -> str:
         return "unknown-machine"
 
 
+REVOCATIONS = KEY_DIR / "revocations.json"           # C741: root's, beside the key — Aurora's account cannot write it
+
+
+def epoch(what: str, path: Path | None = None) -> int:
+    """How many times the owner revoked `what` («exemption», «private_cloud»): signed into its message, so a revoked
+    signature put back by the service's account no longer verifies (C741). 0 when never: the signatures of before."""
+    try:
+        n = json.loads((path or REVOCATIONS).read_text(encoding="utf-8")).get(what, 0)
+        return int(n) if isinstance(n, int) and n >= 0 else 0
+    except (OSError, ValueError, AttributeError):
+        return 0
+
+
+def revoke(what: str, path: Path | None = None) -> int:
+    """Root: one more revocation of `what`; returns the new number (every signature made before is void)."""
+    f = path or REVOCATIONS
+    try:
+        d = json.loads(f.read_text(encoding="utf-8"))
+        d = d if isinstance(d, dict) else {}
+    except (OSError, ValueError):
+        d = {}
+    d[what] = epoch(what, f) + 1
+    tmp = f.with_suffix(".tmp")
+    tmp.write_text(json.dumps(d), encoding="utf-8")
+    import os
+    os.chmod(tmp, 0o644)
+    tmp.replace(f)
+    return d[what]
+
+
+def signed_message(purpose: str, root: Path, what: str) -> bytes:
+    n = epoch(what)
+    return f"{purpose}|{machine_id()}|{root}".encode() + (f"|revoked-{n}".encode() if n else b"")
+
+
 def exemption_message(root: Path) -> bytes:
-    return f"{EXEMPT_PURPOSE}|{machine_id()}|{root}".encode()
+    return signed_message(EXEMPT_PURPOSE, root, "exemption")
 
 
 @lru_cache(maxsize=8)
-def _exempt_cached(path: str, mtime: float, root: str, public_hex: str) -> bool:
+def _exempt_cached(path: str, mtime: float, root: str, public_hex: str, n: int = 0) -> bool:
     try:
         sig = Path(path).read_text().strip()
     except OSError:
@@ -295,7 +331,7 @@ def exempt(cfg: sys_config.Config | None = None) -> bool:
     public_hex, _ = owner_public_key()
     if not p.exists() or not public_hex:
         return False
-    return _exempt_cached(str(p), p.stat().st_mtime, str(cfg.root), public_hex)
+    return _exempt_cached(str(p), p.stat().st_mtime, str(cfg.root), public_hex, epoch("exemption"))
 
 
 POLICY = "sys/core/config/local/ethics_policy.json"

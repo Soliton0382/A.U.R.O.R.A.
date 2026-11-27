@@ -48,7 +48,7 @@ def test_aurora_root_passes_the_nas_and_copies_the_module():
 def test_the_proxy_browses_for_who_may_and_reads_in_for_the_admin():
     src = (ROOT / "sys" / "evidentia" / "addon" / "api_evidentia.py").read_text(encoding="utf-8")
     assert "sources(/(browse|ingest))?" in src
-    assert 'if path == "sources/ingest" and method != "GET":' in src and "only the admin reads a folder" in src
+    assert 'if path in ("sources/ingest", "money/run") and method != "GET":' in src and "only the admin reads a folder" in src
 
 
 def test_a_user_s_request_is_read_strictly_and_once(tmp_path):

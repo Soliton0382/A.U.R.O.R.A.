@@ -23,7 +23,7 @@ from pathlib import Path
 from . import archive, inventory
 
 RUN = Path(os.environ.get("EVD_RUN_DIR") or "/var/lib/evidentia-api")
-SCRIPT = Path(__file__).resolve().parents[1] / "script" / "evd_inventory.py"
+SCRIPT = Path(__file__).resolve().parents[1] / "script" / "evd_read_in.py"    # the inventory, then 💰 the money again
 WORKERS = 3                     # under the service's MemoryMax (6 GB): 3 × (1 GB pdftotext or 2 GB tesseract) and the API
 MAX_LIST = 400                  # subfolders shown at once
 _proc: list = []                # the running inventory's Popen: polled, so an ended one is reaped (never a zombie «alive»)

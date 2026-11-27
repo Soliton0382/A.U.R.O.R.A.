@@ -16,7 +16,7 @@ USE = may_use("addon:evidentia")   # who may: the admin, and the users or groups
 router = APIRouter()
 from .evd_worker import SOCK  # noqa: E402 — one address for the page and the worker
 # only these paths of its API: a fixed list, never a path Aurora's page could make up
-ALLOWED = re.compile(r"^(status|search|collections|health|agents|sources(/(browse|ingest))?|leads(/\d{1,9}(/reopen)?)?|network/(contacts|between|path|people|stats)|"
+ALLOWED = re.compile(r"^(status|search|collections|health|agents|sources(/(browse|ingest))?|money(/run)?|leads(/\d{1,9}(/reopen)?)?|network/(contacts|between|path|people|stats)|"
                      r"cases(/[0-9a-f]{12}(/(export\.md|search|leads|trace|trace/verify|members))?)?|doc/[A-Z]+:[A-Za-z0-9._-]+/page/\d{1,5})$")
 
 
@@ -25,7 +25,7 @@ async def _call(method: str, path: str, request: Request):
         raise HTTPException(status_code=404, detail="not a path of Evidentia")
     if "/trace" in path and method != "GET":            # the case trail: read and verified from the page, written only
         raise HTTPException(status_code=404, detail="not a path of Evidentia")   # by the runs themselves (hand_over)
-    if path == "sources/ingest" and method != "GET":    # R22: reading a folder in writes the archive: the admin's
+    if path in ("sources/ingest", "money/run") and method != "GET":    # R22, 💰: they write the archive: the admin's
         from aurora.api.core import _admin, me
         if me() != _admin():
             raise HTTPException(status_code=403, detail="only the admin reads a folder into the archive")

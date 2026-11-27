@@ -616,7 +616,7 @@ def main(argv: list[str]) -> int:
     if action == "nvidia":
         # its --yes is the GPU script's («install without asking»), never a signature without the owner's «s»
         return _signed_run(["bash", str(LIB / "sys/core/script/sys_nvidia.sh"), *args[1:], *(["--yes"] if yes else [])], False)
-    if action in ("exempt", "private-cloud", "verify-key", "keygen"):
+    if action in ("exempt", "private-cloud", "verify-key", "keygen", "revoke"):     # revoke: C741
         import sys_ethics_sign as S
         sys.argv = ["sys_ethics_sign.py", *args]
         return S.main()

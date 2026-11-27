@@ -20,7 +20,7 @@ COMMAND = "sudo aurora-root private-cloud"
 
 
 def message(root: Path) -> bytes:
-    return f"{PURPOSE}|{sys_ethics.machine_id()}|{root}".encode()
+    return sys_ethics.signed_message(PURPOSE, root, "private_cloud")      # C741: a revocation holds
 
 
 def path(cfg: sys_config.Config) -> Path:
@@ -28,7 +28,7 @@ def path(cfg: sys_config.Config) -> Path:
 
 
 @lru_cache(maxsize=8)
-def _signed(file: str, mtime: float, root: str, public_hex: str) -> bool:
+def _signed(file: str, mtime: float, root: str, public_hex: str, n: int = 0) -> bool:
     try:
         sig = Path(file).read_text(encoding="utf-8").strip()
     except OSError:
@@ -42,7 +42,7 @@ def signed(cfg: sys_config.Config) -> bool:
     public_hex, _ = sys_ethics.owner_public_key()
     if not p.exists() or not public_hex:
         return False
-    return _signed(str(p), p.stat().st_mtime, str(cfg.root), public_hex)
+    return _signed(str(p), p.stat().st_mtime, str(cfg.root), public_hex, sys_ethics.epoch("private_cloud"))
 
 
 def revoke(cfg: sys_config.Config) -> bool:

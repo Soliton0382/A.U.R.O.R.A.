@@ -73,8 +73,8 @@ def test_defaults_as_before_and_an_old_rule_still_counts(cfg):
     f.parent.mkdir(parents=True, exist_ok=True)
     f.write_text(json.dumps({"groups": {}, "access": {"plugin:calendar": {"all": False, "users": [], "groups": []}}}))
     assert not G.may_use(cfg, "ann", "calendar", "boss") and not G.may_use(cfg, "ann", "plugin:calendar", "boss")
-    assert G.denied_pages(cfg, "ann", "boss") == ["calendar", "evd_agents", "evd_archives", "evd_cases", "evd_net",
-                                                  "evd_routines", "evd_server", "evidentia"]
+    assert G.denied_pages(cfg, "ann", "boss") == ["calendar", "evd_agents", "evd_archives", "evd_cases", "evd_money",
+                                                  "evd_net", "evd_routines", "evd_server", "evidentia"]
     G.set_access(cfg, "calendar", True, [], [])
     assert list(json.loads(f.read_text())["access"]) == ["calendar"]       # the old name gone: one rule per feature
 

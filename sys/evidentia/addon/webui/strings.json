@@ -176,7 +176,23 @@
   "evd.share_save": "Salva",
   "evd.share_hint": "Chi lavora con te su questo fascicolo: vede il diario, cerca nei tuoi documenti del fascicolo, apre piste; ogni suo passo resta nel registro con il suo nome.",
   "evd.share_none": "Nessun altro utente può usare Evidentia: aprila a qualcuno in 👥 Utenti → Accessi.",
-  "evd.shared_with_me": "Condiviso con te: ci lavori, ma solo chi l'ha creato lo rinomina, lo sposta o lo cancella."
+  "evd.shared_with_me": "Condiviso con te: ci lavori, ma solo chi l'ha creato lo rinomina, lo sposta o lo cancella.",
+  "nav.evd_money": "Segui i soldi",
+  "evd.money_hint": "Evidentia ha letto le pagine dei soldi (conti, ABA, BIC, IBAN, importi) e ha collegato ciò che compare insieme: banche, società, conti, chi lega più conti, quali società passano dagli stessi conti. Ogni riga ha le pagine da aprire. Si rifà da sola dopo ogni cartella letta.",
+  "evd.money_line": "{p} pagine dei soldi · {n} nomi e conti · {t} legami · calcolato {d}",
+  "evd.money_never": "Non ancora calcolato.",
+  "evd.money_again": "Rifai",
+  "evd.money_running": "Sto seguendo i soldi…",
+  "evd.money_banks": "Banche",
+  "evd.money_orgs": "Società, trust e fondazioni",
+  "evd.money_shared": "Società che usano gli stessi conti",
+  "evd.money_hubs": "Chi lega più conti",
+  "evd.money_top_accounts": "Conti più ricorrenti",
+  "evd.money_public": "Persone pubbliche",
+  "evd.money_pages": "{n} pagine",
+  "evd.money_accounts": "{n} conti",
+  "evd.money_none": "Niente da mostrare.",
+  "evd.money_rules": "Regole: i nomi protetti non compaiono mai; una persona non pubblica nell'archivio è «persona privata #…»; i conti si vedono solo dalle ultime 4 cifre. Un legame dice che due cose compaiono sulle stesse pagine, non cosa le lega: leggi le pagine."
  },
  "en_US": {
   "evd.title": "🕵️ Evidentia",
@@ -355,6 +371,22 @@
   "evd.share_save": "Save",
   "evd.share_hint": "Who works with you on this case: they see its diary, search your documents of the case, open leads; every step of theirs stays in the trail with their name.",
   "evd.share_none": "No other user may use Evidentia: open it to someone in 👥 Users → Access.",
-  "evd.shared_with_me": "Shared with you: you work in it, but only its maker renames, moves or deletes it."
+  "evd.shared_with_me": "Shared with you: you work in it, but only its maker renames, moves or deletes it.",
+  "nav.evd_money": "Follow the money",
+  "evd.money_hint": "Evidentia read the money pages (accounts, ABA, BIC, IBAN, amounts) and tied what appears together: banks, companies, accounts, who ties the most accounts, which companies go through the same accounts. Each row has pages to open. Done again by itself after every folder read in.",
+  "evd.money_line": "{p} money pages · {n} names and accounts · {t} ties · computed {d}",
+  "evd.money_never": "Not computed yet.",
+  "evd.money_again": "Again",
+  "evd.money_running": "Following the money…",
+  "evd.money_banks": "Banks",
+  "evd.money_orgs": "Companies, trusts and foundations",
+  "evd.money_shared": "Companies using the same accounts",
+  "evd.money_hubs": "Who ties the most accounts",
+  "evd.money_top_accounts": "Most seen accounts",
+  "evd.money_public": "Public people",
+  "evd.money_pages": "{n} pages",
+  "evd.money_accounts": "{n} accounts",
+  "evd.money_none": "Nothing to show.",
+  "evd.money_rules": "Rules: protected names never appear; a person not public in the archive is «private person #…»; accounts are shown by their last 4 digits. A tie says two things appear on the same pages, not what ties them: read the pages."
  }
 }

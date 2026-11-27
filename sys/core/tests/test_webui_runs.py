@@ -105,3 +105,9 @@ def test_a_case_is_shared_by_its_maker_and_only_worked_in_by_a_member(tmp_path):
     assert "[object" not in mine + theirs
     assert "evd.share · 1" in mine and "evd.rename" in mine and "👤 bob" in mine and "evd.share_save" in mine
     assert "evd.shared_with_me" in theirs and "evd.rename" not in theirs and "evd.delete" not in theirs
+
+
+def test_the_money_page_draws_banks_companies_shared_accounts_and_masked_accounts(tmp_path):
+    text = "\n".join(_run(tmp_path, "money")["money"])
+    assert "[object" not in text and "EXAMPLE BANK" in text and "GOTHAM HOLDINGS LLC ⇄ METRO TRUST" in text
+    assert "account …2222" in text and "evd.money_rules" in text and "X:1 p. 2" in text

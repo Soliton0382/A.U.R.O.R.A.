@@ -2,6 +2,13 @@
 
 Each version is a signed tag; its notes are the publications since the one before (newest first). Numbers and proofs: docs/MEASUREMENTS.md, docs/BUGS.md.
 
+## v0.3.56 — 2026-11-27
+
+2 publications since v0.3.54.
+
+- 2026-11-27 Evidentia: segui i soldi; C741, C746, C749, C759, C760
+- 2026-11-26 Evidentia inside Aurora: an add-on with its own encrypted backup, an archive per user, case files shared between users, sources on each user's NAS, scanned PDF pages read by OCR; features instead of plugins for users and groups, one access rule; restore by user and from the WebUI; the WebUI menu tidied (system and administration, chat tabs, backup page, unique icons); the desktop app's notifications, its connection form and a package for computers without Aurora
+
 ## v0.3.55 — 2026-11-27
 
 1 publications since v0.3.54.

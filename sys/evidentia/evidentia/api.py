@@ -477,6 +477,33 @@ def net(request: Request):                       # sync: the network's queries r
 
 
 
+# ---- 💰 follow the money (evidentia/money): the report of this request's archive, and a run asked from the page ----
+_money_proc: list = []
+
+
+def money_report(_: Request):
+    f = _data() / "money_report.json"
+    try:
+        rep = json.loads(f.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        rep = {}
+    running = any(p.poll() is None for p in _money_proc)
+    return JSONResponse({**rep, "at": f.stat().st_mtime if f.exists() else None, "running": running})
+
+
+async def money_run(_: Request):
+    import subprocess
+    import sys as _sys
+    if any(p.poll() is None for p in _money_proc):
+        return _err(409, "the money is being followed already")
+    script = config.ROOT / "sys" / "evidentia" / "script" / "evd_money.py"
+    import os as _os
+    _money_proc[:] = [subprocess.Popen([_sys.executable, "-I", "-B", str(script)], stdout=subprocess.DEVNULL,
+                                       stderr=subprocess.DEVNULL, env={**_os.environ, "EVD_DATA_OVERRIDE": str(_data())},
+                                       start_new_session=True)]
+    return JSONResponse({"running": True})
+
+
 # ---- R22: the folders to read in, chosen from the WebUI (evidentia/sources) ---------------------------------------
 from . import sources as _src  # noqa: E402
 
@@ -543,6 +570,8 @@ app = Starlette(routes=[
     Route("/collections", collections),
     Route("/docids", doc_rules),
     Route("/health", server_health),
+    Route("/money", money_report),
+    Route("/money/run", money_run, methods=["POST"]),
     Route("/sources", source_roots),
     Route("/sources/browse", source_browse),
     Route("/sources/ingest", source_ingest, methods=["GET", "POST"]),

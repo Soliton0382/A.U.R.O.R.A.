@@ -189,3 +189,21 @@ def test_a_case_shared_with_another_user_as_projects_are(tmp_path, monkeypatch):
     assert c.get(f"/cases/{cid}", headers={"X-Evidentia-User": "cid"}).status_code == 404    # not shared with cid
     c.put(f"/cases/{cid}/members", json={"members": []}, headers=ann)
     assert c.get("/cases", headers=bob).json()["cases"] == []
+
+
+def test_the_money_report_is_each_archive_s_own(tmp_path, monkeypatch):
+    """💰: GET /money reads the request's archive's report (never another user's)."""
+    import json
+    (tmp_path / "archives").mkdir()
+    (tmp_path / "data").mkdir()
+    (tmp_path / "data" / "money_report.json").write_text(json.dumps({"pages": 7, "orgs": [{"name": "GOTHAM HOLDINGS LLC"}]}))
+    env = tmp_path / ".env"
+    env.write_text(f"EVD_DATA_DIR={tmp_path / 'data'}\nEVD_OWNER=boss\nEVD_ARCHIVE_DIR={tmp_path / 'archives'}\n")
+    monkeypatch.setenv("EVD_ENV_FILE", str(env))
+    from evidentia import api
+    importlib.reload(api)
+    c = TestClient(api.app)
+    mine = c.get("/money").json()
+    assert mine["pages"] == 7 and mine["running"] is False
+    theirs = c.get("/money", headers={"X-Evidentia-User": "ann"}).json()
+    assert "pages" not in theirs and theirs["running"] is False

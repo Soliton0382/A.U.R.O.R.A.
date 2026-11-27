@@ -82,6 +82,10 @@ public class Check { public static void main(String[] a) {
 
 @needs_tools
 def test_the_apk_builds_signed():
+    bad = build.trusted()
+    if bad:                                               # C749: the build waits for signed sources and private tools
+        import pytest
+        pytest.skip(f"C749: not built here until {bad[0]}")
     apk = build.build()
     dump = subprocess.run([build.BT / "aapt2", "dump", "badging", apk], capture_output=True, text=True, check=True).stdout
     assert f"name='{build.PACKAGE}' versionCode='{build.CODE}' versionName='{build.VERSION}'" in dump
